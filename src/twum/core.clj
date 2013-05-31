@@ -3,10 +3,10 @@
    [twitter.oauth]
    [twitter.callbacks]
    [twitter.callbacks.handlers]
-   [twitter.api.restful])
+   [twitter.api.restful]
+   [twum.cfg :only my-creds]) 
   (:import
    (twitter.callbacks.protocols SyncSingleCallback)))
-
 
 (defrecord Tw-list [list-name list-id since-id links])
 (defrecord Tw-link [url count rt-counts fav-counts
@@ -32,9 +32,7 @@
 (defn get-twitter-lists [] 
   (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
 
-; read from twitter (pprint  (twitter.api.restful/lists-list :oauth-creds my-creds))) 
-; grab the slugs
-; (map #(:slug %) (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
+
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists"
   []
