@@ -90,7 +90,7 @@
         url-summaries (reduce #(process-tweet %1 %2) 
                               (get-latest-tweet-id tw-list tweets)
                               tweets)]
-    (spit (:list-name tw-list) url-summaries)))
+    (spit (:list-name tw-list) (pr-str url-summaries))))
 
 (defn get-twitter-list-tweets
   "Call twitter api for a list"
