@@ -95,7 +95,8 @@
 (defn get-twitter-list-tweets
   "Call twitter api for a list"
   [tw-list]
-  (let [twitter-params {:list-id (:list-id tw-list)}]
+  (let [tw-list (first tw-list)
+        twitter-params {:list-id (:list-id tw-list)}]
   (cond
     (zero? (:since-id tw-list)) (process-list-tweets tw-list twitter-params)
     :else (process-list-tweets tw-list (merge twitter-params {:since-id (:since-id tw-list)})))))
@@ -130,8 +131,11 @@
   "We're passed the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking."
   [tw-lists dir]
-   (reduce read-tw-list tw-lists
-           (.listFiles (java.io.File. dir))))
+  (if (.exists (java.io.File. dir)) 
+    (reduce read-tw-list tw-lists
+           (.listFiles (java.io.File. dir)))
+    (do (.mkdirs (java.io.File. dir))
+        nil)))
 
 (defn read-tw-cfg
   "look through lists dir and load twitter list history in map"
