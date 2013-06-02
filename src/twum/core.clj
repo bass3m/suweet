@@ -89,8 +89,7 @@
 (defn get-twitter-list-tweets
   "Call twitter api for a list"
   [tw-list]
-  (let [tw-list (first tw-list)
-        twitter-params {:list-id (:list-id tw-list)}
+  (let [twitter-params {:list-id (:list-id tw-list)}
         since-id (:since-id tw-list)]
   (cond
     (zero? since-id) (process-list-tweets tw-list twitter-params)
