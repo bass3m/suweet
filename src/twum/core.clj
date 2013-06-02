@@ -5,18 +5,12 @@
    [twitter.callbacks.handlers]
    [twitter.api.restful]
    [twum.cfg :only (my-creds)]))
-  ;(:import
-   ;(twitter.callbacks.protocols SyncSingleCallback)))
 
-;(defrecord Twum    [invoked last-update cfg])
+
 (defrecord Tw-list [list-name list-id since-id links])
 (defrecord Tw-url  [url count rt-counts fav-counts
                     urlers last-activity text])
 
-;(defn new-twum [cfg]
-  ;(map->Twum {:invoked 1 
-              ;:last-update (str (java.util.Date.))
-              ;:cfg cfg}))
 
 (defn new-tw-url []
   (map->Tw-url {:url ""
@@ -96,10 +90,11 @@
   "Call twitter api for a list"
   [tw-list]
   (let [tw-list (first tw-list)
-        twitter-params {:list-id (:list-id tw-list)}]
+        twitter-params {:list-id (:list-id tw-list)}
+        since-id (:since-id tw-list)]
   (cond
-    (zero? (:since-id tw-list)) (process-list-tweets tw-list twitter-params)
-    :else (process-list-tweets tw-list (merge twitter-params {:since-id (:since-id tw-list)})))))
+    (zero? since-id) (process-list-tweets tw-list twitter-params)
+    :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
 
 (defn read-list-tweets
   "Query twitter for tweets for each of our lists"
@@ -130,20 +125,20 @@
 (defn read-tw-lists-hist
   "We're passed the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking."
-  [tw-lists dir]
+  [dir]
   (if (.exists (java.io.File. dir)) 
-    (reduce read-tw-list tw-lists
-           (.listFiles (java.io.File. dir)))
+    (map #(read-string (slurp (.getAbsolutePath %))) 
+         (.listFiles (java.io.File. dir)))
     (do (.mkdirs (java.io.File. dir))
         nil)))
 
 (defn read-tw-cfg
   "look through lists dir and load twitter list history in map"
-  [tw-list cfg]
-  (read-tw-lists-hist tw-list (:directory cfg)))
+  [cfg]
+  (read-tw-lists-hist (:directory cfg)))
 
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
-  ([cfg] (update-tw-links (read-tw-cfg (new-tw-list) cfg) cfg))
+  ([cfg] (update-tw-links (read-tw-cfg cfg) cfg))
   ([] (-main {:directory "twlist"})))
 
