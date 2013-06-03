@@ -4,6 +4,7 @@
    [twitter.callbacks]
    [twitter.callbacks.handlers]
    [twitter.api.restful]
+   [clj-time.core]
    [twum.cfg :only (my-creds)]))
 
 
@@ -18,13 +19,13 @@
                  ; links will contain a multitude of Tw-link
                  :links []}))
 
-(defn get-twitter-lists [] 
+(defn get-twitter-lists []
   (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
 
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists"
   []
-  (for [{:keys [slug id]} (get-twitter-lists)] 
+  (for [{:keys [slug id]} (get-twitter-lists)]
     [(assoc (new-tw-list) :list-name slug :list-id id)]))
 
 (defn get-expanded-urls-from-tw [tweets]
@@ -42,14 +43,14 @@
   ; if it's a new link then create a new Tw-link
   ; otherwise update the existing entry: by increasing count and adding
   ; another urlers to the set, also text and update the last activity
-  ; XXX filter out tweets with no urls
-  [{:keys [links] :as tw-list} 
+  ; XXX filter out tweets with no urls, perhaps not needed.
+  [{:keys [links] :as tw-list}
    {:keys [text favorite_count retweet_count entities user]}]
    (if-let [link (seq (for [my-link (seq links)
                             tw-url (map :expanded_url (:urls entities))
                             :when (= (:url my-link) tw-url)] my-link))]
-     (assoc-in tw-list [:links (.indexOf links (first link))] 
-               (-> (first link) 
+     (assoc-in tw-list [:links (.indexOf links (first link))]
+               (-> (first link)
                    (update-in [:count] inc)
                    (update-in [:text] conj text)
                    (update-in [:urlers] conj (:name user))
@@ -60,7 +61,7 @@
                                :count 1 :rt-counts retweet_count
                                :fav-counts favorite_count
                                :urlers (hash-set (:name user))
-                               :last-activity (str (java.util.Date.))
+                               :last-activity (java.util.Date.)
                                :text (hash-set text)}))))
 
 (defn process-list-tweets
@@ -69,7 +70,7 @@
   (let [tweets (:body (twitter.api.restful/lists-statuses
                         :oauth-creds my-creds
                         :params twitter-params))
-        url-summaries (reduce #(process-tweet %1 %2) 
+        url-summaries (reduce #(process-tweet %1 %2)
                               (get-latest-tweet-id tw-list tweets)
                               tweets)]
     (spit (:list-name tw-list) (pr-str url-summaries))))
@@ -92,8 +93,8 @@
   "Call the get lists/list twitter api to get our lists"
   [cfg]
   (for [{:keys [slug id]} (get-twitter-lists)]
-    [(assoc (new-tw-list) 
-            :list-name (clojure.string/join [(:directory cfg) "/" slug]) 
+    [(assoc (new-tw-list)
+            :list-name (clojure.string/join [(:directory cfg) "/" slug])
             :list-id id)]))
 
 (defn update-tw-links
@@ -105,15 +106,20 @@
     (read-list-tweets (get-new-tw-lists cfg))
     (read-list-tweets tw-lists)))
 
-; XXX need to add check for timestamp here, filter out tweets last
-; updated more than 2 days ago
+
 (defn read-tw-lists-hist
-  "We're passed the tw list history dir (containing were we left off).
-  1 file per twitter list we're tracking."
+  "We're given the tw list history dir (containing were we left off).
+  1 file per twitter list we're tracking.
+  Also age out entries that haven't been updated in 3 days."
   [dir]
-  (if (.exists (java.io.File. dir)) 
-    (map #(read-string (slurp (.getAbsolutePath %))) 
-         (.listFiles (java.io.File. dir)))
+  (if (.exists (java.io.File. dir))
+    (let [tw-lists (map #(read-string (slurp (.getAbsolutePath %)))
+                        (.listFiles (java.io.File. dir)))]
+      (map (fn [tw-list]
+             (assoc-in tw-list [:links]
+                       (filter #(within? (interval (-> 3 days ago) (now))
+                                  (from-date (:last-activity %))) (:links tw-list))))
+           tw-lists))
     (do (.mkdirs (java.io.File. dir))
         nil)))
 
@@ -125,5 +131,5 @@
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
   ([cfg] (update-tw-links (read-tw-cfg cfg) cfg))
-  ([] (-main {:directory "twlist"})))
+  ([] (-main {:directory "twlist" :days-to-expire 3 :tw-lists-to-track []})))
 
