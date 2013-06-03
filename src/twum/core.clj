@@ -11,16 +11,6 @@
 (defrecord Tw-url  [url count rt-counts fav-counts
                     urlers last-activity text])
 
-
-(defn new-tw-url []
-  (map->Tw-url {:url ""
-                :count 0
-                :rt-counts 0
-                :fav-counts 0
-                :urlers #{}
-                :last-activity ""
-                :text #{}}))
-
 (defn new-tw-list []
   (map->Tw-list {:list-name ""
                  :list-id ""
@@ -28,10 +18,8 @@
                  ; links will contain a multitude of Tw-link
                  :links []}))
 
-
 (defn get-twitter-lists [] 
   (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
-
 
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists"
@@ -54,19 +42,19 @@
   ; if it's a new link then create a new Tw-link
   ; otherwise update the existing entry: by increasing count and adding
   ; another urlers to the set, also text and update the last activity
-  [{:keys [links] :as tw-list}
+  ; XXX filter out tweets with no urls
+  [{:keys [links] :as tw-list} 
    {:keys [text favorite_count retweet_count entities user]}]
    (if-let [link (seq (for [my-link (seq links)
                             tw-url (map :expanded_url (:urls entities))
                             :when (= (:url my-link) tw-url)] my-link))]
-     (update-in tw-list [:links] conj
-                (-> link
-                  (update-in [:count] inc)
-                  (update-in [:text] conj text)
-                  (update-in [:urlers] conj (:name user))
-                  (update-in [:rt-counts] max retweet_count)
-                  (update-in [:fav-counts] max favorite_count)))
-     ; otherwise, create a new entry
+     (assoc-in tw-list [:links (.indexOf links (first link))] 
+               (-> (first link) 
+                   (update-in [:count] inc)
+                   (update-in [:text] conj text)
+                   (update-in [:urlers] conj (:name user))
+                   (update-in [:rt-counts] max retweet_count)
+                   (update-in [:fav-counts] max favorite_count)))
      (update-in tw-list [:links] conj
                  (map->Tw-url {:url (:expanded_url (first (:urls entities)))
                                :count 1 :rt-counts retweet_count
@@ -117,10 +105,8 @@
     (read-list-tweets (get-new-tw-lists cfg))
     (read-list-tweets tw-lists)))
 
-(defn read-tw-list [tw-lists file]
-  (let [tw-list (read-string (slurp (.getAbsolutePath file)))]
-    (vector tw-lists tw-list)))
-
+; XXX need to add check for timestamp here, filter out tweets last
+; updated more than 2 days ago
 (defn read-tw-lists-hist
   "We're passed the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking."
