@@ -92,7 +92,10 @@
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists"
   [cfg]
-  (for [{:keys [slug id]} (get-twitter-lists)]
+  (for [{:keys [slug id]} (get-twitter-lists)
+        :let [tw-list (:tw-lists-to-track cfg)] 
+        :when (or (empty? tw-list)
+                  (contains? tw-list slug))]
     [(assoc (new-tw-list)
             :list-name (clojure.string/join [(:directory cfg) "/" slug])
             :list-id id)]))
@@ -106,30 +109,27 @@
     (read-list-tweets (get-new-tw-lists cfg))
     (read-list-tweets tw-lists)))
 
-
-(defn read-tw-lists-hist
+(defn read-cfg
   "We're given the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking.
-  Also age out entries that haven't been updated in 3 days."
-  [dir]
-  (if (.exists (java.io.File. dir))
+  Also age out entries that haven't been updated in configurable num of days."
+  [cfg]
+  (if (.exists (java.io.File. (:directory cfg)))
     (let [tw-lists (map #(read-string (slurp (.getAbsolutePath %)))
-                        (.listFiles (java.io.File. dir)))]
+                        (.listFiles (java.io.File. (:directory cfg))))]
       (map (fn [tw-list]
              (assoc-in tw-list [:links]
-                       (filter #(within? (interval (-> 3 days ago) (now))
-                                  (from-date (:last-activity %))) (:links tw-list))))
+                       (filter #(within? (interval 
+                                           (-> (:days-to-expire cfg) days ago) 
+                                           (now))
+                                  (from-date (:last-activity %))) 
+                               (:links tw-list))))
            tw-lists))
-    (do (.mkdirs (java.io.File. dir))
+    (do (.mkdirs (java.io.File. (:directory cfg)))
         nil)))
-
-(defn read-tw-cfg
-  "look through lists dir and load twitter list history in map"
-  [cfg]
-  (read-tw-lists-hist (:directory cfg)))
 
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
-  ([cfg] (update-tw-links (read-tw-cfg cfg) cfg))
-  ([] (-main {:directory "twlist" :days-to-expire 3 :tw-lists-to-track []})))
+  ([cfg] (update-tw-links (read-cfg cfg) cfg))
+  ([] (-main {:directory "twlist" :days-to-expire 3 :tw-lists-to-track #{}})))
 
