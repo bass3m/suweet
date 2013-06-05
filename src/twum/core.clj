@@ -19,14 +19,10 @@
                  ; links will contain a multitude of Tw-link
                  :links []}))
 
-(defn get-twitter-lists []
-  (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
-
-(defn get-new-tw-lists
-  "Call the get lists/list twitter api to get our lists"
+(defn get-twitter-lists 
+  "Query twitter for our lists. Returns vector of maps."
   []
-  (for [{:keys [slug id]} (get-twitter-lists)]
-    [(assoc (new-tw-list) :list-name slug :list-id id)]))
+  (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
 
 (defn get-expanded-urls-from-tw [tweets]
   (map (comp :expanded_url first :urls :entities) tweets))
@@ -73,7 +69,8 @@
         url-summaries (reduce #(process-tweet %1 %2)
                               (get-latest-tweet-id tw-list tweets)
                               tweets)]
-    (spit (:list-name tw-list) (pr-str url-summaries))))
+    (do (spit (:list-name tw-list) (pr-str url-summaries))
+        url-summaries)))
 
 (defn get-twitter-list-tweets
   "Call twitter api for a list"
@@ -90,7 +87,10 @@
   (map get-twitter-list-tweets tw-lists))
 
 (defn get-new-tw-lists
-  "Call the get lists/list twitter api to get our lists"
+  "Call the get lists/list twitter api to get our lists. 
+  If the tw-lists-to-track is empty that implies that we want
+  to monitor all our lists. If not, then monitor only the list
+  listed in that set."
   [cfg]
   (for [{:keys [slug id]} (get-twitter-lists)
         :let [tw-list (:tw-lists-to-track cfg)] 
@@ -106,7 +106,7 @@
   and create a new one."
   [tw-lists cfg] ; i hate this form/pattern need to clean that up
   (if (nil? tw-lists)
-    (read-list-tweets (get-new-tw-lists cfg))
+    (read-list-tweets (first (get-new-tw-lists cfg)))
     (read-list-tweets tw-lists)))
 
 (defn read-cfg
