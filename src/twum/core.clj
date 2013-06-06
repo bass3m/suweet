@@ -1,13 +1,9 @@
 (ns twum.core
   (:use
-   [twitter.oauth]
-   [twitter.callbacks]
-   [twitter.callbacks.handlers]
    [twitter.api.restful]
    [clj-time.core]
    [clj-time.coerce]
    [twum.cfg :only (my-creds)]))
-
 
 (defn new-tw-list []
   {:list-name ""
@@ -16,7 +12,7 @@
    ; links will contain a multitude of Tw-link
    :links []})
 
-(defn get-twitter-lists 
+(defn get-twitter-lists
   "Query twitter for our lists. Returns vector of maps."
   []
   (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
@@ -35,7 +31,7 @@
   entities),text, fav count and rt count."
   ; if it's a new link then create a new Tw-link
   ; otherwise update the existing entry: by increasing count and adding
-  ; another urlers to the set, also text and update the last activity 
+  ; another urlers to the set, also text and update the last activity
   [{:keys [links] :as tw-list}
    {:keys [text favorite_count retweet_count entities user]}]
    (if-let [link (seq (for [my-link (seq links)
@@ -48,7 +44,7 @@
                    (update-in [:urlers] conj (:name user))
                    (update-in [:rt-counts] max retweet_count)
                    (update-in [:fav-counts] max favorite_count)))
-     (update-in tw-list [:links] conj 
+     (update-in tw-list [:links] conj
                 {:url (:expanded_url (first (:urls entities)))
                  :count 1 :rt-counts retweet_count
                  :fav-counts favorite_count
@@ -73,9 +69,9 @@
   [tw-list]
   (let [twitter-params {:list-id (:list-id tw-list)}
         since-id (:since-id tw-list)]
-  (cond
-    (zero? since-id) (process-list-tweets tw-list twitter-params)
-    :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
+    (cond
+      (zero? since-id) (process-list-tweets tw-list twitter-params)
+      :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
 
 (defn read-list-tweets
   "Query twitter for tweets for each of our lists"
@@ -83,13 +79,13 @@
   (map get-twitter-list-tweets tw-lists))
 
 (defn get-new-tw-lists
-  "Call the get lists/list twitter api to get our lists. 
+  "Call the get lists/list twitter api to get our lists.
   If the tw-lists-to-track is empty that implies that we want
   to monitor all our lists. If not, then monitor only the list
   listed in that set."
   [cfg]
   (for [{:keys [slug id]} (get-twitter-lists)
-        :let [tw-list (:tw-lists-to-track cfg)] 
+        :let [tw-list (:tw-lists-to-track cfg)]
         :when (or (empty? tw-list)
                   (contains? tw-list slug))]
     [(assoc (new-tw-list)
@@ -115,11 +111,11 @@
                         (.listFiles (java.io.File. (:directory cfg))))]
       (map (fn [tw-list]
              (assoc-in tw-list [:links]
-                       (filter #(within? (interval 
-                                           (-> (:days-to-expire cfg) days ago) 
+                       (filter #(within? (interval
+                                           (-> (:days-to-expire cfg) days ago)
                                            (now))
-                                  (from-date (:last-activity %))) 
-                               (:links tw-list))))
+                                  (from-date (:last-activity %)))
+                               (:links tw-list)))) 
            tw-lists))
     (do (.mkdirs (java.io.File. (:directory cfg)))
         nil)))
