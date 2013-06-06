@@ -5,6 +5,7 @@
    [twitter.callbacks.handlers]
    [twitter.api.restful]
    [clj-time.core]
+   [clj-time.coerce]
    [twum.cfg :only (my-creds)]))
 
 
@@ -38,8 +39,7 @@
   entities),text, fav count and rt count."
   ; if it's a new link then create a new Tw-link
   ; otherwise update the existing entry: by increasing count and adding
-  ; another urlers to the set, also text and update the last activity
-  ; XXX filter out tweets with no urls, perhaps not needed.
+  ; another urlers to the set, also text and update the last activity 
   [{:keys [links] :as tw-list}
    {:keys [text favorite_count retweet_count entities user]}]
    (if-let [link (seq (for [my-link (seq links)
