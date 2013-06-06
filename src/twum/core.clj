@@ -9,16 +9,12 @@
    [twum.cfg :only (my-creds)]))
 
 
-(defrecord Tw-list [list-name list-id since-id links])
-(defrecord Tw-url  [url count rt-counts fav-counts
-                    urlers last-activity text])
-
 (defn new-tw-list []
-  (map->Tw-list {:list-name ""
-                 :list-id ""
-                 :since-id 0
-                 ; links will contain a multitude of Tw-link
-                 :links []}))
+  {:list-name ""
+   :list-id ""
+   :since-id 0
+   ; links will contain a multitude of Tw-link
+   :links []})
 
 (defn get-twitter-lists 
   "Query twitter for our lists. Returns vector of maps."
@@ -52,13 +48,13 @@
                    (update-in [:urlers] conj (:name user))
                    (update-in [:rt-counts] max retweet_count)
                    (update-in [:fav-counts] max favorite_count)))
-     (update-in tw-list [:links] conj
-                 (map->Tw-url {:url (:expanded_url (first (:urls entities)))
-                               :count 1 :rt-counts retweet_count
-                               :fav-counts favorite_count
-                               :urlers (hash-set (:name user))
-                               :last-activity (java.util.Date.)
-                               :text (hash-set text)}))))
+     (update-in tw-list [:links] conj 
+                {:url (:expanded_url (first (:urls entities)))
+                 :count 1 :rt-counts retweet_count
+                 :fav-counts favorite_count
+                 :urlers (hash-set (:name user))
+                 :last-activity (java.util.Date.)
+                 :text (hash-set text)})))
 
 (defn process-list-tweets
   "Call twitter api for a list and process the tweets"
