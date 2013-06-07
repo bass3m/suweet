@@ -1,9 +1,10 @@
 (ns twum.core
   (:use
-   [twitter.api.restful]
-   [clj-time.core]
-   [clj-time.coerce]
-   [twum.cfg :only (my-creds)]))
+    [clojure.java.io]
+    [twitter.api.restful]
+    [clj-time.core]
+    [clj-time.coerce]
+    [twum.cfg :only (my-creds)]))
 
 (defn new-tw-list []
   {:list-name ""
@@ -114,19 +115,50 @@
                          (:links tw-list)))))
 
 (defn read-cfg
+  "Read our config file and merge it with the config supplied
+  from the user. User configs overwrite config file settings."
+  [new-cfg]
+  (let [cfg-file (:cfg-file new-cfg)]
+    (if (empty? cfg-file)
+      new-cfg
+      (if (.exists (as-file cfg-file))
+        (let [existing-cfg (read-string (slurp cfg-file))]
+          ;; now we merge the exiting config with what the user specified
+          (reduce (fn [acc [k v]]
+                     (if (not (contains? acc k))
+                       (merge acc (hash-map k v))
+                       acc)) new-cfg existing-cfg))
+        new-cfg))))
+
+(defn write-cfg
+  "Write our last config to a file. Overwrite existing file if exists."
+  [cfg]
+  (do
+    (when (not (empty? (:cfg-file cfg)))
+      (spit (:cfg-file cfg) cfg)) 
+    cfg))
+
+(defn read-prev-tweets
   "We're given the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking.
   Also age out entries that haven't been updated in configurable num of days."
   [cfg]
-  (if (.exists (java.io.File. (:directory cfg)))
+  (if (.exists (as-file (:directory cfg)))
     (let [tw-lists (map #(read-string (slurp (.getAbsolutePath %)))
-                        (.listFiles (java.io.File. (:directory cfg))))]
+                        (.listFiles (as-file (:directory cfg))))]
       (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
-    (do (.mkdirs (java.io.File. (:directory cfg))) ; i don't like this side-effect
+    (do (.mkdirs (as-file (:directory cfg))) ; i don't like this side-effect
         nil)))
 
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
-  ([cfg] (update-tw-links (read-cfg cfg) cfg))
-  ([] (-main {:directory "twlist" :days-to-expire 3 :tw-lists-to-track #{}})))
+  ([cfg] (-> cfg
+             read-cfg
+             write-cfg
+             read-prev-tweets
+             (update-tw-links cfg)))
+  ([] (-main {:directory "twlist"
+              :days-to-expire 3
+              :tw-lists-to-track #{}
+              :cfg-file "config.txt"})))
 
