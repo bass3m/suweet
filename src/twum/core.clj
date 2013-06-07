@@ -9,7 +9,7 @@
   {:list-name ""
    :list-id ""
    :since-id 0
-   ; links will contain a multitude of Tw-link
+   ; links will contain a multitude of links
    :links []})
 
 (defn get-twitter-lists
@@ -29,14 +29,15 @@
 (defn process-tweet
   "Process an individual tweet. We only care about urls(contained in
   entities),text, fav count and rt count."
-  ; if it's a new link then create a new Tw-link
+  ; if it's a new link then create a new link
   ; otherwise update the existing entry: by increasing count and adding
   ; another urlers to the set, also text and update the last activity
   [{:keys [links] :as tw-list}
    {:keys [text favorite_count retweet_count entities user]}]
    (if-let [link (seq (for [my-link (seq links)
                             tw-url (map :expanded_url (:urls entities))
-                            :when (= (:url my-link) tw-url)] my-link))]
+                            :when (and (not (nil? (:url my-link)))
+                                       (= (:url my-link) tw-url))] my-link))]
      (assoc-in tw-list [:links (.indexOf links (first link))]
                (-> (first link)
                    (update-in [:count] inc)
@@ -88,9 +89,9 @@
         :let [tw-list (:tw-lists-to-track cfg)]
         :when (or (empty? tw-list)
                   (contains? tw-list slug))]
-    [(assoc (new-tw-list)
+    (assoc (new-tw-list)
             :list-name (clojure.string/join [(:directory cfg) "/" slug])
-            :list-id id)]))
+            :list-id id)))
 
 (defn update-tw-links
   "Start checking twitter timeline for any url and merge if needed.
@@ -98,8 +99,19 @@
   and create a new one."
   [tw-lists cfg] ; i hate this form/pattern need to clean that up
   (if (nil? tw-lists)
-    (read-list-tweets (first (get-new-tw-lists cfg)))
+    (read-list-tweets (get-new-tw-lists cfg))
     (read-list-tweets tw-lists)))
+
+; age out old entries
+(defn age-old-tweets
+  "Age out tweets that are older than a configured number of days"
+  [tw-list days-to-keep]
+  (assoc-in tw-list [:links]
+            (vec (filter #(within? (interval
+                                     (-> days-to-keep days ago)
+                                     (now))
+                            (from-date (:last-activity %)))
+                         (:links tw-list)))))
 
 (defn read-cfg
   "We're given the tw list history dir (containing were we left off).
@@ -109,15 +121,8 @@
   (if (.exists (java.io.File. (:directory cfg)))
     (let [tw-lists (map #(read-string (slurp (.getAbsolutePath %)))
                         (.listFiles (java.io.File. (:directory cfg))))]
-      (map (fn [tw-list]
-             (assoc-in tw-list [:links]
-                       (filter #(within? (interval
-                                           (-> (:days-to-expire cfg) days ago)
-                                           (now))
-                                  (from-date (:last-activity %)))
-                               (:links tw-list)))) 
-           tw-lists))
-    (do (.mkdirs (java.io.File. (:directory cfg)))
+      (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
+    (do (.mkdirs (java.io.File. (:directory cfg))) ; i don't like this side-effect
         nil)))
 
 ; for cli args : https://github.com/clojure/tools.cli
