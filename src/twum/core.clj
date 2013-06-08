@@ -44,6 +44,7 @@
                    (update-in [:count] inc)
                    (update-in [:text] conj text)
                    (update-in [:urlers] conj (:name user))
+                   (update-in [:follow-count] max (:followers_count user))
                    (update-in [:rt-counts] max retweet_count)
                    (update-in [:fav-counts] max favorite_count)))
      (update-in tw-list [:links] conj
@@ -51,6 +52,7 @@
                  :count 1 :rt-counts retweet_count
                  :fav-counts favorite_count
                  :urlers (hash-set (:name user))
+                 :follow-count (:followers_count user)
                  :last-activity (java.util.Date.)
                  :text (hash-set text)})))
 
@@ -135,8 +137,14 @@
   [cfg]
   (do
     (when (not (empty? (:cfg-file cfg)))
-      (spit (:cfg-file cfg) cfg)) 
+      (spit (:cfg-file cfg) cfg))
     cfg))
+
+(defn read-tw-lists
+  "Slurp our lists."  ; XXX kept as cfg for threading macros
+  [cfg]
+  (map #(read-string (slurp (.getAbsolutePath %)))
+       (.listFiles (as-file (:directory cfg)))))
 
 (defn read-prev-tweets
   "We're given the tw list history dir (containing were we left off).
@@ -144,8 +152,7 @@
   Also age out entries that haven't been updated in configurable num of days."
   [cfg]
   (if (.exists (as-file (:directory cfg)))
-    (let [tw-lists (map #(read-string (slurp (.getAbsolutePath %)))
-                        (.listFiles (as-file (:directory cfg))))]
+    (let [tw-lists (read-tw-lists cfg)]
       (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
     (do (.mkdirs (as-file (:directory cfg))) ; i don't like this side-effect
         nil)))
