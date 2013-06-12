@@ -1,18 +1,20 @@
 (ns twum.summarize
-  (:use [clojure.string :only (join)])
-  (:use [opennlp.nlp :only (make-sentence-detector make-tokenizer)])
-  (:use [stemmer.snowball]))
+  (:require [clojure.string :as string :only [lower-case split-lines]])
+  (:require [opennlp.nlp :as nlp :only [make-sentence-detector make-tokenizer]])
+  (:require [stemmer.snowball :as snowball]))
 
 ;; Based on Luhn '58 paper
 
 ; only english at the moment
-(def get-sentences  (make-sentence-detector "models/en-sent.bin"))
-(def tokenize       (make-tokenizer "models/en-token.bin"))
+(def get-sentences  (nlp/make-sentence-detector "models/en-sent.bin"))
+(def tokenize       (nlp/make-tokenizer "models/en-token.bin"))
 ; stemmer see: http://snowball.tartarus.org/
-(def en-stemmer     (stemmer "english"))
+(def en-stemmer     (snowball/stemmer "english"))
 
+;; could also go with the slightly less readable 
+;; ((comp :type :algorithm) cfg)
 (defmulti rank-sentence 
-  (fn [sentence significant-words cfg] 
+  (fn [_ _ cfg] 
     (get-in cfg [:algorithm :type])))
 
 ; find max score over the sentence within the cluster size.
@@ -86,7 +88,7 @@
 (defn filter-stop-words
   "Get rid of stop words from a given coll of words"
   [cfg words]
-  (let [stop-words (into #{} (clojure.string/split-lines
+  (let [stop-words (into #{} (string/split-lines
                                (slurp (:stop-words cfg))))]
     (filter #(not (contains? stop-words %)) words)))
 
@@ -97,7 +99,7 @@
   map of word key and frequency as value."
   [text cfg]
   (->> text
-       clojure.string/lower-case
+       string/lower-case
        tokenize
        filter-non-words
        (filter-stop-words cfg)
@@ -120,7 +122,7 @@
          significant (significant-words text cfg)]
      (map #(assoc-in % [:score]
                      (-> (:sentence %)
-                         clojure.string/lower-case
+                         string/lower-case
                          tokenize
                          stem-words ;; added
                          (rank-sentence significant cfg)))

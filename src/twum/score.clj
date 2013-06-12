@@ -1,6 +1,6 @@
 (ns twum.score
-  (:use [clojure.string :only (join)])
-  (:use [twum.core :only (read-cfg read-tw-lists)]))
+  (:require [clojure.string :as string :only [join]])
+  (:require [twum.core :only [read-cfg read-tw-lists]]))
 
 ; read config file, to find where we keep tweets
 ; then read tweets and do some basic sorting
@@ -13,9 +13,9 @@
   "Format a top tweet in a more user friendly view"
   [tw]
   (format "\nBy: %s\n%s\n%sReTweeted by: %d Favorited by: %d Followers: %d\n"
-          (join ":" (concat (:urlers tw)))
-          (join ":" (concat (:text tw)))
-          (if (not (nil? (:url tw))) (join ["Link: " (:url tw) "\n"]) "") 
+          (string/join ":" (concat (:urlers tw)))
+          (string/join ":" (concat (:text tw)))
+          (if (not (nil? (:url tw))) (string/join ["Link: " (:url tw) "\n"]) "") 
           (:rt-counts tw) (:fav-counts tw) (:follow-count tw)))
 
 (defn default-score-fn
