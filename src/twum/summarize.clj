@@ -14,7 +14,7 @@
 ; find max score over the sentence within the cluster size.
 ; very basic ranking algorithm
 (defn rank-sentence
-  ([sentence significant cfg] (rank-sentence sentence significant cfg 0))
+  ([sentence significant cfg] (rank-sentence sentence (map key significant) cfg 0))
   ([sentence significant cfg score]
    (if (empty? sentence)
      score
@@ -30,27 +30,35 @@
   indeces of word position in the sentence with the non-significant
   word filtered out."
   [sentence significant]
-  (for [snt (map-indexed vector (tokenize sentence))
+  (for [snt (map-indexed vector sentence)
         sig significant
         :when (= sig (second snt))] snt))
 
 ; (def sec-snt (second (map #(filter-sentence % (map key sigy)) sents)))
 (defn sentence-rank
-  [sentence cfg]
-  (reduce (fn [acc [n _]] 
-            (cond
-              (or (> n (+ (:word-cluster-size cfg) (:last acc)))
-                  (zero? (:sig-size acc))) (assoc acc :start n :sig-size 1 :last n 
-                                                  :max-score (max (:max-score acc) 1))
-              :else (let [new-sig (inc (:sig-size acc))
-                          size (+ 1 (- n (:start acc)))] 
-                      (-> acc (assoc :sig-size new-sig)
-                              (assoc :max-score (max (:max-score acc)
-                                                     (/ (* new-sig new-sig)
-                                                        size)))
-                              (assoc :last n)))))
-          {:last 0 :start 0 :sig-size 0 :max-score 0} sentence))
-
+  "Calculate the sentence score. Find the maximum score for a segment
+  of a sentence within :word-cluster-size words. We are passed words
+  which are significant together with their location in the sentence.
+  The score is calculated by squaring the num of significant word count
+  divided by the total num of words in that segment.
+  sentence: tokenized words in the sentence.
+  sigificant: stemmed significant words along with their frequencies."
+  [sentence significant cfg]
+  (let [sentence (filter-sentence sentence (map key significant))]
+    (:max-score 
+      (reduce (fn [acc [n _]] 
+                    (cond
+                      (or (> n (+ (:word-cluster-size cfg) (:last acc)))
+                          (zero? (:sig-size acc))) (assoc acc :start n :sig-size 1 :last n 
+                                                          :max-score (max (:max-score acc) 1))
+                      :else (let [new-sig (inc (:sig-size acc))
+                                  size (+ 1 (- n (:start acc)))] 
+                              (-> acc (assoc :sig-size new-sig)
+                                  (assoc :max-score (max (:max-score acc)
+                                                         (/ (* new-sig new-sig)
+                                                            size)))
+                                  (assoc :last n)))))
+                  {:last 0 :start 0 :sig-size 0 :max-score 0} sentence))))
 
 (defn filter-non-words
   "Given a coll of strings, get rid of non-words, periods, commas for example."
@@ -88,6 +96,7 @@
 (defn summarize
   "Attempt to summarize a given text into it's most relevant sentences"
   ([text] (summarize text {:num-sentences 3
+                           :algorithm {:type "luhn" :params {:word-cluster-size 4}}
                            :word-cluster-size 4
                            :top-n-pct 0.9 ; XXX should be a freq distrib
                            :stop-words "models/english.txt"}))
@@ -102,7 +111,7 @@
                          clojure.string/lower-case
                          tokenize
                          stem-words ;; added
-                         (rank-sentence (map key significant) cfg)))
+                         (sentence-rank significant cfg)))
           sentences-map))))
 
 
