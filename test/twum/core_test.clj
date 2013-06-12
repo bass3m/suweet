@@ -5,12 +5,12 @@
    [twitter.callbacks.handlers]
    [twitter.api.restful])
   (:import
-   (twitter.callbacks.protocols SyncSingleCallback)) 
-  (:use [clojure.test] 
-        [twum.cfg :only (my-creds)] 
+   (twitter.callbacks.protocols SyncSingleCallback))
+  (:use [clojure.test]
+        [twum.cfg :only (my-creds)]
         [twum.core]))
 
-(def cfg  {:directory "twtest" :days-to-expire 3 :tw-lists-to-track #{}}) 
+(def cfg  {:directory "twtest" :days-to-expire 3 :tw-lists-to-track #{}})
 (def my-tw-lists (get-new-tw-lists cfg))
 
 (deftest test-tw-list-count
@@ -28,7 +28,7 @@
 (deftest test-list-dev-exists
   (testing "Test that the dev list exists in the returned twitter lists"
     (let [list-name (clojure.string/join [(:directory cfg) "/dev"])]
-      (is (= (some #(= list-name (:list-name %)) (first  my-tw-lists)) 
+      (is (= (some #(= list-name (:list-name %)) (first  my-tw-lists))
              true)))))
 
 ; we have a non-zero since-id
