@@ -1,10 +1,10 @@
 (ns twum.core
-  (:use
-    [clojure.java.io]
+  (:require
+    [clojure.java.io :as io]
     [twitter.api.restful]
-    [clj-time.core]
-    [clj-time.coerce]
-    [twum.cfg :only (my-creds)]))
+    [clj-time.core :as clj-time]
+    [clj-time.coerce :as coerce]
+    [twum.cfg :as cfg :only [my-creds]]))
 
 (defn new-tw-list []
   {:list-name ""
@@ -16,7 +16,7 @@
 (defn get-twitter-lists
   "Query twitter for our lists. Returns vector of maps."
   []
-  (:body  (twitter.api.restful/lists-list :oauth-creds my-creds)))
+  (:body  (twitter.api.restful/lists-list :oauth-creds cfg/my-creds)))
 
 (defn get-expanded-urls-from-tw [tweets]
   (map (comp :expanded_url first :urls :entities) tweets))
@@ -60,7 +60,7 @@
   "Call twitter api for a list and process the tweets"
   [tw-list twitter-params]
   (let [tweets (:body (twitter.api.restful/lists-statuses
-                        :oauth-creds my-creds
+                        :oauth-creds cfg/my-creds
                         :params twitter-params))
         url-summaries (reduce #(process-tweet %1 %2)
                               (get-latest-tweet-id tw-list tweets)
@@ -110,10 +110,10 @@
   "Age out tweets that are older than a configured number of days"
   [tw-list days-to-keep]
   (assoc-in tw-list [:links]
-            (vec (filter #(within? (interval
-                                     (-> days-to-keep days ago)
-                                     (now))
-                            (from-date (:last-activity %)))
+            (vec (filter #(clj-time/within? (clj-time/interval
+                                     (-> days-to-keep clj-time/days clj-time/ago)
+                                     (clj-time/now))
+                            (coerce/from-date (:last-activity %)))
                          (:links tw-list)))))
 
 (defn read-cfg
@@ -123,7 +123,7 @@
   (let [cfg-file (:cfg-file new-cfg)]
     (if (empty? cfg-file)
       new-cfg
-      (if (.exists (as-file cfg-file))
+      (if (.exists (io/as-file cfg-file))
         (let [existing-cfg (read-string (slurp cfg-file))]
           ;; now we merge the exiting config with what the user specified
           (reduce (fn [acc [k v]]
@@ -144,17 +144,17 @@
   "Slurp our lists."  ; XXX kept as cfg for threading macros
   [cfg]
   (map #(read-string (slurp (.getAbsolutePath %)))
-       (.listFiles (as-file (:directory cfg)))))
+       (.listFiles (io/as-file (:directory cfg)))))
 
 (defn read-prev-tweets
   "We're given the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking.
   Also age out entries that haven't been updated in configurable num of days."
   [cfg]
-  (if (.exists (as-file (:directory cfg)))
+  (if (.exists (io/as-file (:directory cfg)))
     (let [tw-lists (read-tw-lists cfg)]
       (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
-    (do (.mkdirs (as-file (:directory cfg))) ; i don't like this side-effect
+    (do (.mkdirs (io/as-file (:directory cfg))) ; i don't like this side-effect
         nil)))
 
 ; for cli args : https://github.com/clojure/tools.cli
