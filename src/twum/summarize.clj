@@ -136,3 +136,7 @@
 ;(take (:num-sentences cfg) (reverse (sort-by :score (summarize text)))
 ; then sort by actual order.
 ;; (take (Math/round (* 8 0.9)) (significant-words senty {:stop-words "models/english.txt"}))
+;; (pprint (sort-by :order 
+;;            (take 3 (reverse (sort-by :score 
+;;                 (summarize (clean-html 
+;;                             (:text (parse-url "http://buff.ly/11rrgoh")))))))))

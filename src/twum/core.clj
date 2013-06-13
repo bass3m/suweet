@@ -1,6 +1,6 @@
 (ns twum.core
   (:require
-    [clojure.java.io :as io]
+    [clojure.java.io :as io :only [as-file]]
     [twitter.api.restful]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
