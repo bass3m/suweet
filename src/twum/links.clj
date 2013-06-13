@@ -3,12 +3,8 @@
            [org.apache.tika.parser.html HtmlParser]
            [org.apache.tika.sax BodyContentHandler] 
            [org.apache.tika.metadata Metadata])
-  (:require [clojure.java.io :as io :only  [input-stream]]))
-
-(defn clean-html
-  "Remove html markup from a string."
-  [html-str]
-  )
+  (:require [clojure.java.io :as io :only [input-stream]]
+            [clojure.string :as s :only [trim replace]]))
 
 (defn parse-url
   "Use Apache Tika to retrieve content from the given url."
@@ -21,3 +17,15 @@
       (.parse parser i-stream text metadata context)
       (assoc {} :url url :text (.toString text)))))
 
+(defn clean-html
+  "Remove html markup from a string and perform a little cleanup."
+  [html-str]
+  (-> html-str
+      s/trim
+      (s/replace #"(?is)<(script|style).*?>.*?(</\1>)" "")
+      (s/replace #"(?s)<!--(.*?)-->[\n]?" "")
+      (s/replace #"(?s)<.*?>" " ")
+      (s/replace #"&nbsp;" " ")
+      (s/replace #"[\n]+|\s{2,}" " ")
+      (s/replace #"\t" " . ")
+      s/trim))

@@ -1,6 +1,6 @@
 (ns twum.score
-  (:require [clojure.string :as string :only [join]])
-  (:require [twum.core :only [read-cfg read-tw-lists]]))
+  (:require [clojure.string :as s :only [join]])
+  (:require [twum.core :as twum :only [read-cfg read-tw-lists]]))
 
 ; read config file, to find where we keep tweets
 ; then read tweets and do some basic sorting
@@ -13,9 +13,9 @@
   "Format a top tweet in a more user friendly view"
   [tw]
   (format "\nBy: %s\n%s\n%sReTweeted by: %d Favorited by: %d Followers: %d\n"
-          (string/join ":" (concat (:urlers tw)))
-          (string/join ":" (concat (:text tw)))
-          (if (not (nil? (:url tw))) (string/join ["Link: " (:url tw) "\n"]) "") 
+          (s/join ":" (concat (:urlers tw)))
+          (s/join ":" (concat (:text tw)))
+          (if (not (nil? (:url tw))) (s/join ["Link: " (:url tw) "\n"]) "") 
           (:rt-counts tw) (:fav-counts tw) (:follow-count tw)))
 
 (defn default-score-fn
@@ -46,4 +46,4 @@
   "Process all of our lists for the top tweets in each list.
   We're given the location of the config file"
   [cfg-file]
-  (map top-list-tweets (-> {:cfg-file cfg-file} read-cfg read-tw-lists)))
+  (map top-list-tweets (-> {:cfg-file cfg-file} twum/read-cfg twum/read-tw-lists)))

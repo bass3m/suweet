@@ -1,5 +1,5 @@
 (ns twum.summarize
-  (:require [clojure.string :as string :only [lower-case split-lines]])
+  (:require [clojure.string :as s :only [lower-case split-lines]])
   (:require [opennlp.nlp :as nlp :only [make-sentence-detector make-tokenizer]])
   (:require [stemmer.snowball :as snowball]))
 
@@ -75,6 +75,11 @@
   (do (println "Not implemented yet: Sentence" sentence)
       (println "Config: " cfg)))
 
+(defn filter-string-non-words
+  "Given a string, filter the non Char or Digits."
+  [st]
+  (s/join (filter #(Character/isLetterOrDigit %) st)))
+
 (defn filter-non-words
   "Given a coll of strings, get rid of non-words, periods, commas for example."
   [str-coll]
@@ -88,7 +93,7 @@
 (defn filter-stop-words
   "Get rid of stop words from a given coll of words"
   [cfg words]
-  (let [stop-words (into #{} (string/split-lines
+  (let [stop-words (into #{} (s/split-lines
                                (slurp (:stop-words cfg))))]
     (filter #(not (contains? stop-words %)) words)))
 
@@ -99,7 +104,7 @@
   map of word key and frequency as value."
   [text cfg]
   (->> text
-       string/lower-case
+       s/lower-case
        tokenize
        filter-non-words
        (filter-stop-words cfg)
@@ -122,7 +127,7 @@
          significant (significant-words text cfg)]
      (map #(assoc-in % [:score]
                      (-> (:sentence %)
-                         string/lower-case
+                         s/lower-case
                          tokenize
                          stem-words ;; added
                          (rank-sentence significant cfg)))
