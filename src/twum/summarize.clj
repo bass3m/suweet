@@ -119,6 +119,29 @@
         sqr #(* % %)]
     (Math/sqrt (/ (apply + (map #(sqr (- % mean)) coll)) (count coll)))))
 
+;; http://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+;; Source in C++ :  http://www.johndcook.com/standard_deviation.html
+;; From Knuth TAOCP vol 2, 3rd edition, page 232
+(defn mean-variance
+  [coll]
+  (reduce (fn [{:keys [n mean m2] :as acc} new-n] 
+            (let [new-mean (+ mean  (/ (- new-n mean) (inc n)))
+                  new-m2 (+ m2 (* (- new-n mean) (- new-n new-mean)))]
+              (-> acc
+                  (assoc :n (inc n))
+                  (assoc :mean new-mean)
+                  (assoc :m2 new-m2)))) 
+          {:n 0 :mean 0 :m2 0} coll))
+
+(defn online-mean
+  [coll]
+  (:mean (mean-variance coll)))
+
+(defn online-std
+  [coll]
+  (let [{:keys [n m2]} (mean-variance coll)]
+    (Math/sqrt (/ m2 n))))
+
 ; :score-algo {:type :top-n :params {:val 100}}
 ; :score-algo {:type :pct :params {:val 0.9}}
 ; :score-algo {:type :freq :params {:freq-factor 0.5}}

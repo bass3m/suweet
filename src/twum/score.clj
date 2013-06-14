@@ -1,6 +1,6 @@
 (ns twum.score
   (:require [clojure.string :as s :only [join]])
-  (:require [twum.core :as twum :only [read-cfg read-tw-lists]]))
+  (:require [twum.core :as twum :only [merge-cfg read-tw-lists]]))
 
 (defn format-top-tweet
   "Format a top tweet in a more user friendly view"
@@ -33,5 +33,5 @@
   We're given the location of the config file"
   [cfg-file]
   (map top-list-tweets (-> {:cfg-file cfg-file}
-                           twum/read-cfg
+                           twum/merge-cfg
                            twum/read-tw-lists)))

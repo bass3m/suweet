@@ -93,7 +93,7 @@
         :when (or (empty? tw-list)
                   (contains? tw-list slug))]
     (assoc (new-tw-list)
-            :list-name (clojure.string/join [(:directory cfg) "/" slug])
+            :list-name (str (:directory cfg) "/" slug)
             :list-id id)))
 
 (defn update-tw-links
@@ -116,7 +116,7 @@
                             (coerce/from-date (:last-activity %)))
                          (:links tw-list)))))
 
-(defn read-cfg
+(defn merge-cfg
   "Read our config file and merge it with the config supplied
   from the user. User configs overwrite config file settings."
   [new-cfg]
@@ -140,6 +140,13 @@
       (spit (:cfg-file cfg) cfg))
     cfg))
 
+(defn read-tw-list-by-name
+  "Read the given twlist"
+  [cfg twlist-name]
+  (let [twlist-filename (str (:directory cfg) "/" twlist-name)]
+    (if (.exists (io/as-file twlist-filename))
+      (read-string (slurp twlist-filename)))))
+
 (defn read-tw-lists
   "Slurp our lists."  ; XXX kept as cfg for threading macros
   [cfg]
@@ -160,7 +167,7 @@
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
   ([cfg] (-> cfg
-             read-cfg
+             merge-cfg
              write-cfg
              read-prev-tweets
              (update-tw-links cfg)))
