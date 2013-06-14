@@ -18,7 +18,8 @@
       (assoc {} :url url :text (.toString text)))))
 
 (defn clean-html
-  "Remove html markup from a string and perform a little cleanup."
+  "Remove html markup from a string and perform a little cleanup.
+  Most of these patterns are from nltk."
   [html-str]
   (-> html-str
       s/trim

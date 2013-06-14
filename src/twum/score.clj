@@ -32,4 +32,6 @@
   "Process all of our lists for the top tweets in each list.
   We're given the location of the config file"
   [cfg-file]
-  (map top-list-tweets (-> {:cfg-file cfg-file} twum/read-cfg twum/read-tw-lists)))
+  (map top-list-tweets (-> {:cfg-file cfg-file}
+                           twum/read-cfg
+                           twum/read-tw-lists)))
