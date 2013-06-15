@@ -14,7 +14,7 @@
 (defmulti score-tweet
   "Scoring function for a tweet. The idea is to be able to vary the
   method used to calculate the score of a tweet"
-  (fn [cfg &]
+  (fn [cfg _ _ _]
     (:tw-score cfg)))
 
 ;; The default scoring function for a tweet. We calculate the score as
