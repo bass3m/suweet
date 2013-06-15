@@ -14,13 +14,13 @@
 (defmulti score-tweet
   "Scoring function for a tweet. The idea is to be able to vary the
   method used to calculate the score of a tweet"
-  (fn [cfg _ _ _]
+  (fn [cfg rest-args]
     (:tw-score cfg)))
 
 ;; The default scoring function for a tweet. We calculate the score as
 ;; follows (3 * favorite-count + retweet-count) / follower-count"
 (defmethod score-tweet :default
-  [_ fav rt fol]
+  [_ [fav rt fol]]
   (/ (+ rt (* 3 fav)) fol))
 
 ;; Define method for sorting the tweets
@@ -32,7 +32,7 @@
 ;; favorite counts, retweet counts and the number of followers
 (defmethod sort-tweet :default
   [cfg link]
-  (apply score-tweet cfg ((juxt :fav-counts :rt-counts :follow-count) link)))
+  (score-tweet cfg ((juxt :fav-counts :rt-counts :follow-count) link)))
 
 (defn top-list-tweets
   "Process twitter list and return the top tweets"
