@@ -143,11 +143,19 @@
       (spit (:cfg-file cfg) cfg))
     cfg))
 
+(defn read-tw-list
+  "Read a saved tw list from file"
+  [file-path]
+  (let [file-contents (slurp (.getAbsolutePath file-path))]
+    (when (re-find #"\{\:list\-name" file-contents)
+      (read-string file-contents))))
+
 (defn read-tw-lists
   "Slurp our lists."
   [cfg]
-  (map #(read-string (slurp (.getAbsolutePath %)))
-       (.listFiles (io/as-file (:directory cfg)))))
+  (for [file (.listFiles (io/as-file (:directory cfg))) 
+        :let [file-contents (read-tw-list file)] :when file-contents]
+    file-contents))
 
 (defn top-tweets
   "Process all of our lists for the top tweets in each list.
@@ -161,17 +169,7 @@
 (defn save-top-tw-list
   "Save a tw list's top tweets"
   [cfg tw-list]
-  (do (spit (str (:list-name tw-list) (:extension cfg)) (pr-str tw-list))
-      tw-list))
-
-; want to make them composable/partial
-(defn save-top-tweets
-  "Save top tweets to be read at a later time"
-  ([tw-lists] (save-top-tweets {:cfg-file "config.txt" :directory "twlist"
-                                :top-tweets 10 :tw-sort :default
-                                :tw-score :default :extension "-summ.txt"}
-                               tw-lists))
-  ([cfg tw-lists] (map (partial save-top-tw-list cfg) tw-lists)))
+  (spit (str (:list-name tw-list) (:extension cfg)) (pr-str (:links tw-list))))
 
 (defn summarize-link
   "Summarize an individual link, if no link is given then ignore"
@@ -186,13 +184,11 @@
 (defn summarize-tw-list
   "Given the top tweets, go through any links and summarize the text"
   [cfg tw-list]
-  (map (partial summarize-link cfg) tw-list))
+  (assoc-in tw-list [:links] (map (partial summarize-link cfg) (:links tw-list))))
 
-;; since we got rid of the formating (we can do at the final stage
-;; before saving), then we should have all the info that we need.
 (defn summarize-top-tweets
   [cfg]
-  (map (comp (partial save-top-tweets cfg)
+  (map (comp (partial save-top-tw-list cfg)
              (partial summarize-tw-list cfg)
              (partial score/top-tw-list cfg)) (-> cfg
                                                   merge-cfg
