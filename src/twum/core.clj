@@ -164,6 +164,7 @@
                    :top-tweets 10 :tw-sort :default :tw-score :default}))
   ([cfg] (map (partial score/top-tw-list cfg) (-> cfg
                                                   merge-cfg
+                                                  write-cfg
                                                   read-tw-lists))))
 
 (defn save-top-tw-list
@@ -192,6 +193,7 @@
              (partial summarize-tw-list cfg)
              (partial score/top-tw-list cfg)) (-> cfg
                                                   merge-cfg
+                                                  write-cfg
                                                   read-tw-lists)))
 
 (defn read-tw-list-by-name
