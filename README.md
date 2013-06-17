@@ -50,16 +50,46 @@ Sumeet produces 2 sets of output:
 
 - one summary file containing the specified number of top tweets to summarize. The file is the same structure as for twitter list file, except that it adds another key :summary which has as it's value the summary of the url in the tweet.
 
+### Config file
+An example of the config options available:
+
+    {:tw-sort :default, :cfg-file "config.txt", :extension "-summ.txt", 
+     :directory "twlist", :days-to-expire 3, :tw-lists-to-track #{}
+     :tw-score :default, :top-tweets 7 
+     :num-sentences 3 :algo {:type :luhn :params {:word-cluster-size 4}} 
+     :score-algo {:type :freq :params {:freq-factor 0.5}} 
+     :stop-words "models/english.txt"}
+
+Following are the config options available:
+
+-  :cfg-file - the path to the config file
+-  :directory  - Directory where tweets from twitter list will be stored
+-  :days-to-expire - number of days to keep tweets before ageing them out
+-  :tw-lists-to-track #{} - set containing which twitter list to track. If left empty then track all twitter lists.
+-  :top-tweets - How many top ranked tweets per list to get.
+-  :extension - File extention to use for storing tweet url text summaries.
+-  :tw-sort - algorithm used to sort tweets by their score.
+-  :tw-score - algorithm used to give a score to a tweet.
+-  :num-sentences - maximum number of sentences to return for the summary
+-  :algo - which algorithm to use.
+   - :type - Current options are :luhn and :basic
+   - :params - Parameters for Luhn's algorithm.
+       - :word-cluster-size - the cluster size, values of 4 or 5 are suggested by Luhn's paper.
+- :score-algo - Which scoring algorithm to use
+    - :type : Types available are :freq, :pct and :top-n
+    - :params : Parameters for scoring algorithm.
+        - :freq-factor - for freq scoring, factor to use set word score threshold. `score = mean + (freq-factor * standand-deviation)`
+- :stop-words - path to the stop words file.
+
+
+
+### Usage
 
 By: twitter-handle
 Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit...
 link: http://www.example.com
 Points: xxx
 Brief Summary: the summary of text.
-
-### Usage
-
-FIXME
 
 ## License
 
