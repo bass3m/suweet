@@ -4,6 +4,9 @@
     [twitter.api.restful]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
+    [twum.score :as score :only [top-tw-list]]
+    [twum.links :as link]
+    [twum.summarize :as s :only [summarize]]
     [twum.cfg :as cfg :only [my-creds]]))
 
 (defn new-tw-list []
@@ -140,6 +143,61 @@
       (spit (:cfg-file cfg) cfg))
     cfg))
 
+(defn read-tw-lists
+  "Slurp our lists."
+  [cfg]
+  (map #(read-string (slurp (.getAbsolutePath %)))
+       (.listFiles (io/as-file (:directory cfg)))))
+
+(defn top-tweets
+  "Process all of our lists for the top tweets in each list.
+  We're given the location of the config file"
+  ([] (top-tweets {:cfg-file "config.txt" :directory "twlist"
+                   :top-tweets 10 :tw-sort :default :tw-score :default}))
+  ([cfg] (map (partial score/top-tw-list cfg) (-> cfg
+                                                  merge-cfg
+                                                  read-tw-lists))))
+
+(defn save-top-tw-list
+  "Save a tw list's top tweets"
+  [cfg tw-list]
+  (do (spit (str (:list-name tw-list) (:extension cfg)) (pr-str tw-list))
+      tw-list))
+
+; want to make them composable/partial
+(defn save-top-tweets
+  "Save top tweets to be read at a later time"
+  ([tw-lists] (save-top-tweets {:cfg-file "config.txt" :directory "twlist"
+                                :top-tweets 10 :tw-sort :default
+                                :tw-score :default :extension "-summ.txt"}
+                               tw-lists))
+  ([cfg tw-lists] (map (partial save-top-tw-list cfg) tw-lists)))
+
+(defn summarize-link
+  "Summarize an individual link, if no link is given then ignore"
+  [cfg tweet]
+  (if-let [url (:url tweet)]
+    (assoc tweet :summary (map :sentence (-> url
+                                             link/parse-url
+                                             link/clean-html
+                                             s/summarize)))
+    tweet))
+
+(defn summarize-tw-list
+  "Given the top tweets, go through any links and summarize the text"
+  [cfg tw-list]
+  (map (partial summarize-link cfg) tw-list))
+
+;; since we got rid of the formating (we can do at the final stage
+;; before saving), then we should have all the info that we need.
+(defn summarize-top-tweets
+  [cfg]
+  (map (comp (partial save-top-tweets cfg)
+             (partial summarize-tw-list cfg)
+             (partial score/top-tw-list cfg)) (-> cfg
+                                                  merge-cfg
+                                                  read-tw-lists)))
+
 (defn read-tw-list-by-name
   "Read the given twlist"
   [cfg twlist-name]
@@ -147,21 +205,16 @@
     (if (.exists (io/as-file twlist-filename))
       (read-string (slurp twlist-filename)))))
 
-(defn read-tw-lists
-  "Slurp our lists."  ; XXX kept as cfg for threading macros
-  [cfg]
-  (map #(read-string (slurp (.getAbsolutePath %)))
-       (.listFiles (io/as-file (:directory cfg)))))
-
-(defn read-prev-tweets
+(defn read-old-tweets
   "We're given the tw list history dir (containing were we left off).
   1 file per twitter list we're tracking.
-  Also age out entries that haven't been updated in configurable num of days."
+  Also age out entries that haven't been updated in configurable num of days.
+  This function creates the twlist directory if it doesn't exists already."
   [cfg]
   (if (.exists (io/as-file (:directory cfg)))
     (let [tw-lists (read-tw-lists cfg)]
       (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
-    (do (.mkdirs (io/as-file (:directory cfg))) ; i don't like this side-effect
+    (do (.mkdirs (io/as-file (:directory cfg)))
         nil)))
 
 ; for cli args : https://github.com/clojure/tools.cli
@@ -169,7 +222,7 @@
   ([cfg] (-> cfg
              merge-cfg
              write-cfg
-             read-prev-tweets
+             read-old-tweets
              (update-tw-links cfg)))
   ([] (-main {:directory "twlist"
               :days-to-expire 3

@@ -1,8 +1,7 @@
 (ns twum.score
-  (:require [clojure.string :as s :only [join]])
-  (:require [twum.core :as twum :only [merge-cfg read-tw-lists]]))
+  (:require [clojure.string :as s :only [join]]))
 
-(defn format-top-tweet
+(defn format-tweet
   "Format a top tweet in a more user friendly view"
   [tw]
   (format "\nBy: %s\n%s\n%sReTweeted by: %d Favorited by: %d Followers: %d\n"
@@ -29,24 +28,22 @@
     (:tw-sort cfg)))
 
 ;; the default option is to use a calculation based on
-;; favorite counts, retweet counts and the number of followers
+;; favorite,  retweet counts and the number of followers
 (defmethod sort-tweet :default
   [cfg link]
   (score-tweet cfg ((juxt :fav-counts :rt-counts :follow-count) link)))
 
-(defn top-list-tweets
+(defn top-tw-list
   "Process twitter list and return the top tweets"
-  ([tw-list] (top-list-tweets {:top-tweets 10
-                               :tw-sort :default
-                               :tw-score :default} tw-list))
-  ([cfg tw-list] (map format-top-tweet
-                      (take (:top-tweets cfg) 
-                            (reverse (sort-by (partial sort-tweet cfg) (:links tw-list)))))))
-
-(defn top-tweets
-  "Process all of our lists for the top tweets in each list.
-  We're given the location of the config file"
-  [cfg-file]
-  (map (partial top-list-tweets cfg-file) (-> {:cfg-file cfg-file}
-                                              twum/merge-cfg
-                                              twum/read-tw-lists)))
+  ([tw-list] (top-tw-list {:top-tweets 10
+                           :tw-sort  :default
+                           :tw-score :default} tw-list))
+  ([cfg tw-list] (take (:top-tweets cfg)
+                            (reverse (sort-by (partial sort-tweet cfg)
+                                              (:links tw-list))))))
+(defn format-top-tweets
+  "Format top twitter list tweets to be ready to print"
+  ([tw-list] (format-top-tweets {:top-tweets 10
+                                 :tw-sort  :default
+                                 :tw-score :default} tw-list))
+  ([cfg tw-list] (map format-tweet (top-tw-list cfg tw-list))))
