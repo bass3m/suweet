@@ -1,6 +1,7 @@
 (ns twum.core
   (:require
     [clojure.java.io :as io :only [as-file]]
+    [clojure.tools.cli :as cli :only [cli]]
     [twitter.api.restful]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
@@ -19,7 +20,7 @@
 (defn get-twitter-lists
   "Query twitter for our lists. Returns vector of maps."
   []
-  (:body  (twitter.api.restful/lists-list :oauth-creds cfg/my-creds)))
+  (:body (twitter.api.restful/lists-list :oauth-creds cfg/my-creds)))
 
 (defn get-expanded-urls-from-tw [tweets]
   (map (comp :expanded_url first :urls :entities) tweets))
@@ -132,15 +133,16 @@
           (reduce (fn [acc [k v]]
                      (if (not (contains? acc k))
                        (merge acc (hash-map k v))
-                       acc)) new-cfg existing-cfg))))))
+                       acc)) new-cfg existing-cfg))
+        new-cfg))))
 
 (defn write-cfg
   "Write our last config to a file. Overwrite existing file if exists."
   [cfg]
   (do
-    (when (not (empty? (:cfg-file cfg)))
-      (spit (:cfg-file cfg) cfg))
-    cfg))
+    (when (not-empty (:cfg-file cfg))
+      (spit (:cfg-file cfg) (with-out-str (clojure.pprint/pprint cfg))))
+      cfg))
 
 (defn read-tw-list
   "Read a saved tw list from file"
@@ -149,10 +151,10 @@
     (when (re-find #"\{\:list\-name" file-contents)
       (read-string file-contents))))
 
-(defn- read-tw-lists
+(defn read-tw-lists
   "Slurp our lists."
   [cfg]
-  (for [file (.listFiles (io/as-file (:directory cfg))) 
+  (for [file (.listFiles (io/as-file (:directory cfg)))
         :let [file-contents (read-tw-list file)] :when file-contents]
     file-contents))
 
@@ -232,15 +234,36 @@
   (let [cfg (merge-cfg cfg)]
     (get-from (str twlist-name (:extension cfg)) s/format-summary cfg)))
 
-; for cli args : https://github.com/clojure/tools.cli
-(defn -main
-  ([cfg] (-> cfg
-             merge-cfg
-             write-cfg
-             read-old-tweets
-             (update-tw-links cfg)))
-  ([] (-main {:directory "twlist"
-              :days-to-expire 3
-              :tw-lists-to-track #{}
-              :cfg-file "config.txt"})))
-
+(defn -main [& args]
+  (let [[opts _ banner] 
+        (cli/cli args
+                 ["--cfg-file" "Path to config file location"
+                  :default "config.txt"]
+                 ["--directory" "Directory where twitter lists reside"
+                  :default "twlist"]
+                 ["--days-to-expire"
+                  "Number of days to keep tweets before they age-out"
+                  :default 3 :parse-fn #(Integer. %)]
+                 ["--extension"
+                  "File extension for storing high score tweets' url text summaries"
+                  :default "-summ.txt"]
+                 ["--top-tweets" "How many top ranked tweets per list to get"
+                  :default 10 :parse-fn #(Integer. %)]
+                 ["--num-sentences"
+                  "Maximum number of sentences to return for the summary"
+                  :default 3 :parse-fn #(Integer. %)]
+                 ["--stop-words" "Path to Stop Words file"
+                  :default "models/english.txt"]
+                 ["--tw-lists-to-track"
+                  "Space-separated string of twitter lists names. All if not specified"
+                  :default #{} :parse-fn #(into #{} (clojure.string/split % #" "))]
+                 ["--help" "Show help" :default false :flag true])
+        {:keys [help]} opts]
+    (when help
+      (println "Suweet" banner)
+      (System/exit 0))
+    (-> opts
+        merge-cfg
+        write-cfg
+        read-old-tweets
+        (update-tw-links opts))))

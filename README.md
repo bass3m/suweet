@@ -68,7 +68,7 @@ Following are the config options available:
 -  :**days-to-expire** - number of days to keep tweets before ageing them out
 -  :**tw-lists-to-track** - set containing which twitter list to track. If left empty then track all twitter lists.
 -  :**top-tweets** - How many top ranked tweets per list to get.
--  :**extension** - File extention to use for storing tweet url text summaries.
+-  :**extension** - File extension to use for storing tweet url text summaries.
 -  :**tw-sort** - algorithm used to sort tweets by their score.
 -  :**tw-score** - algorithm used to give a score to a tweet.
 -  :**num-sentences** - maximum number of sentences to return for the summary
@@ -94,6 +94,7 @@ We can run the application using leiningen, as follows:
 
 `lein run --cfg-file "config.txt" --directory "twlist" etc..`
 
+If you decide to provide options on the command line, then the only **mandatory** option is to specify the location of the config file.
 Please note that you can override the defaults in the config file using the command line options (these new config options will be then merged and saved to the config file).
 You can additionally specify any of the config options stated above when running the application Just prefix that option with "--" the option name and the new value.  
 Exceptions are "*algo*" and "*score-algo*", you have to manually edit the config file to change those options. 
