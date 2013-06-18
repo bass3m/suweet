@@ -92,7 +92,7 @@ The included config file has a default configuration that should be reasonable f
 
 We can run the application using leiningen, as follows:
 
-`lein run --cfg-file "config.txt" --directory "twlist" etc..`
+`lein run -- --cfg-file "config.txt" --directory "twlist" etc..`
 
 If you decide to provide options on the command line, then the only **mandatory** option is to specify the location of the config file.
 Please note that you can override the defaults in the config file using the command line options (these new config options will be then merged and saved to the config file).

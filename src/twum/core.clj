@@ -81,10 +81,20 @@
       (zero? since-id) (process-list-tweets tw-list twitter-params)
       :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
 
+(defn print-tw-list-update-summary
+  [tw-lists]
+  (do
+    (println "Updates to" (count tw-lists) "lists")
+    (println (map (comp
+                    (fn [[list-name num-links]]
+                      (format (str "List: " list-name " - Num of links: " num-links "\n")))
+                    #((juxt :list-name (comp count :links)) %)) tw-lists))))
+
 (defn read-list-tweets
   "Query twitter for tweets for each of our lists"
   [tw-lists]
-  (map get-twitter-list-tweets tw-lists))
+  (let [tw-lists (map get-twitter-list-tweets tw-lists)]
+    (print-tw-list-update-summary tw-lists)))
 
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists.
