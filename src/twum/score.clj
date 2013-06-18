@@ -39,12 +39,12 @@
                            :tw-sort  :default
                            :tw-score :default} tw-list))
   ([cfg tw-list] (assoc tw-list :links 
-                           (take (:top-tweets cfg)
+                           (vec (take (:top-tweets cfg)
                                  (reverse (sort-by (partial sort-tweet cfg)
-                                                   (:links tw-list)))))))
+                                                   (:links tw-list))))))))
 (defn format-top-tweets
   "Format top twitter list tweets to be ready to print"
   ([tw-list] (format-top-tweets {:top-tweets 10
                                  :tw-sort  :default
                                  :tw-score :default} tw-list))
-  ([cfg tw-list] (map format-tweet (top-tw-list cfg tw-list))))
+  ([cfg tw-list] (map (comp print format-tweet) (:links (top-tw-list cfg tw-list)))))

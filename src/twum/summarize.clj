@@ -211,15 +211,20 @@
                         (rank-sentence significant cfg)))
          sentences-map)))
 
+(defn format-summary
+  "Make summary more viewable"
+  [tweet-summary]
+  (map (comp  print :summary) tweet-summary))
+
 (defn summarize
   "Attempt to summarize a given text into it's most relevant sentences"
   ([text] (summarize text {:num-sentences 3
                            :algo {:type :luhn :params {:word-cluster-size 4}}
                            :score-algo {:type :freq :params {:freq-factor 0.5}}
                            :stop-words "models/english.txt"}))
-  ([text cfg] (->> cfg
-                   (calc-sentences text)
-                   (sort-by :score)
-                   reverse
-                   (filter-low-score-sentences cfg)
-                   (sort-by :order))))
+  ([text cfg] (vec (take (:num-sentences cfg) (->> cfg
+                                                   (calc-sentences text)
+                                                   (sort-by :score)
+                                                   reverse
+                                                   (filter-low-score-sentences cfg)
+                                                   (sort-by :order))))))

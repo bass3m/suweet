@@ -10,7 +10,7 @@
   "Use Apache Tika to retrieve content from the given url."
   [url]
   (with-open [i-stream (io/input-stream url)]
-    (let [text (BodyContentHandler.)
+    (let [text (BodyContentHandler. -1) ;; pass -1 to disable body size limit
           metadata (Metadata.) 
           parser (HtmlParser.)
           context (ParseContext.)]

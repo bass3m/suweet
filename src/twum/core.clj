@@ -4,7 +4,7 @@
     [twitter.api.restful]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
-    [twum.score :as score :only [top-tw-list]]
+    [twum.score :as score :only [top-tw-list format-top-tweet]]
     [twum.links :as link]
     [twum.summarize :as s :only [summarize]]
     [twum.cfg :as cfg :only [my-creds]]))
@@ -132,8 +132,7 @@
           (reduce (fn [acc [k v]]
                      (if (not (contains? acc k))
                        (merge acc (hash-map k v))
-                       acc)) new-cfg existing-cfg))
-        new-cfg))))
+                       acc)) new-cfg existing-cfg))))))
 
 (defn write-cfg
   "Write our last config to a file. Overwrite existing file if exists."
@@ -150,7 +149,7 @@
     (when (re-find #"\{\:list\-name" file-contents)
       (read-string file-contents))))
 
-(defn read-tw-lists
+(defn- read-tw-lists
   "Slurp our lists."
   [cfg]
   (for [file (.listFiles (io/as-file (:directory cfg))) 
@@ -162,10 +161,10 @@
   We're given the location of the config file"
   ([] (top-tweets {:cfg-file "config.txt" :directory "twlist"
                    :top-tweets 10 :tw-sort :default :tw-score :default}))
-  ([cfg] (map (partial score/top-tw-list cfg) (-> cfg
-                                                  merge-cfg
-                                                  write-cfg
-                                                  read-tw-lists))))
+  ([cfg] (let [cfg (merge-cfg cfg)]
+           (map (partial score/top-tw-list cfg) (-> cfg
+                                                    write-cfg
+                                                    read-tw-lists)))))
 
 (defn save-top-tw-list
   "Save a tw list's top tweets"
@@ -176,30 +175,30 @@
   "Summarize an individual link, if no link is given then ignore"
   [cfg tweet]
   (if-let [url (:url tweet)]
-    (assoc tweet :summary (map :sentence (-> url
-                                             link/parse-url
-                                             link/clean-html
-                                             s/summarize)))
+    (assoc tweet :summary (vec (map :sentence (-> url
+                                                  link/parse-url
+                                                  link/clean-html
+                                                  s/summarize))))
     tweet))
 
 (defn summarize-tw-list
   "Given the top tweets, go through any links and summarize the text"
   [cfg tw-list]
-  (assoc-in tw-list [:links] (map (partial summarize-link cfg) (:links tw-list))))
+  (assoc-in tw-list [:links] (vec (map (partial summarize-link cfg) (:links tw-list)))))
 
 (defn summarize-top-tweets
   [cfg]
-  (map (comp (partial save-top-tw-list cfg)
-             (partial summarize-tw-list cfg)
-             (partial score/top-tw-list cfg)) (-> cfg
-                                                  merge-cfg
-                                                  write-cfg
-                                                  read-tw-lists)))
+  (let [cfg (merge-cfg cfg)]
+    (map (comp (partial save-top-tw-list cfg)
+               (partial summarize-tw-list cfg)
+               (partial score/top-tw-list cfg)) (-> cfg
+                                                    write-cfg
+                                                    read-tw-lists))))
 
 (defn read-tw-list-by-name
   "Read the given twlist"
   [cfg twlist-name]
-  (let [twlist-filename (str (:directory cfg) "/" twlist-name)]
+  (let [twlist-filename (str (:directory (merge-cfg cfg)) "/" twlist-name)]
     (if (.exists (io/as-file twlist-filename))
       (read-string (slurp twlist-filename)))))
 
@@ -214,6 +213,24 @@
       (map #(age-old-tweets % (:days-to-expire cfg)) tw-lists))
     (do (.mkdirs (io/as-file (:directory cfg)))
         nil)))
+
+(defn get-from
+  "Get from given twlist name"
+  [twlist-name f cfg]
+  (f (read-tw-list-by-name cfg twlist-name)))
+
+(defn top-tweets-from
+  "Return the top tweets from given twitter list in a user viewable format"
+  [cfg twlist-name]
+  (get-from twlist-name score/format-top-tweets cfg))
+
+(defn summarize-from
+  "Return summaries of text from a given twitter list. We're given the
+  twiiter list name, we need to append the summary extension from the config
+  in order to read the summary file"
+  [cfg twlist-name]
+  (let [cfg (merge-cfg cfg)]
+    (get-from (str twlist-name (:extension cfg)) s/format-summary cfg)))
 
 ; for cli args : https://github.com/clojure/tools.cli
 (defn -main
