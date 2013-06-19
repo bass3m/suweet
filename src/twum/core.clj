@@ -87,7 +87,7 @@
     (println "Updates to" (count tw-lists) "lists")
     (println (map (comp
                     (fn [[list-name num-links]]
-                      (format (str "List: " list-name " - Num of links: " num-links "\n")))
+                      (format (str "List: " list-name " - Num of tweets " num-links "\n")))
                     #((juxt :list-name (comp count :links)) %)) tw-lists))))
 
 (defn read-list-tweets
@@ -114,12 +114,9 @@
   "Start checking twitter timeline for any url and merge if needed.
   If the given twitter list is empty then check twitter for our lists
   and create a new one."
-  [tw-lists cfg] ; i hate this form/pattern need to clean that up
-  (if (nil? tw-lists)
-    (read-list-tweets (get-new-tw-lists cfg))
-    (read-list-tweets tw-lists)))
+  [tw-lists cfg]
+  (read-list-tweets (get-new-tw-lists cfg)))
 
-; age out old entries
 (defn age-old-tweets
   "Age out tweets that are older than a configured number of days"
   [tw-list days-to-keep]
