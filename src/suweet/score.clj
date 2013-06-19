@@ -1,4 +1,4 @@
-(ns twum.score
+(ns suweet.score
   (:require [clojure.string :as s :only [join]]))
 
 (defn format-tweet

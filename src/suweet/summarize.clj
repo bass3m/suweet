@@ -1,4 +1,4 @@
-(ns twum.summarize
+(ns suweet.summarize
   (:require [clojure.string :as s :only [lower-case split-lines]])
   (:require [opennlp.nlp :as nlp :only [make-sentence-detector make-tokenizer]])
   (:require [stemmer.snowball :as snowball]))

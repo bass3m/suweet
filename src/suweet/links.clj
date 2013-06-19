@@ -1,4 +1,4 @@
-(ns twum.links
+(ns suweet.links
   (:import [org.apache.tika.parser Parser ParseContext]
            [org.apache.tika.parser.html HtmlParser]
            [org.apache.tika.sax BodyContentHandler] 

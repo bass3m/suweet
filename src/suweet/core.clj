@@ -1,14 +1,14 @@
-(ns twum.core
+(ns suweet.core
   (:require
     [clojure.java.io :as io :only [as-file]]
     [clojure.tools.cli :as cli :only [cli]]
     [twitter.api.restful]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
-    [twum.score :as score :only [top-tw-list format-top-tweet]]
-    [twum.links :as link]
-    [twum.summarize :as s :only [summarize]]
-    [twum.cfg :as cfg :only [my-creds]]))
+    [suweet.score :as score :only [top-tw-list format-top-tweet]]
+    [suweet.links :as link]
+    [suweet.summarize :as s :only [summarize]]
+    [suweet.cfg :as cfg :only [my-creds]]))
 
 (defn new-tw-list []
   {:list-name ""

@@ -1,4 +1,4 @@
-(ns twum.core-test
+(ns suweet.core-test
   (:use
    [twitter.oauth]
    [twitter.callbacks]
@@ -7,8 +7,8 @@
   (:import
    (twitter.callbacks.protocols SyncSingleCallback))
   (:use [clojure.test]
-        [twum.cfg :only (my-creds)]
-        [twum.core]))
+        [suweet.cfg :only (my-creds)]
+        [suweet.core]))
 
 (def cfg  {:directory "twtest" :days-to-expire 3 :tw-lists-to-track #{}})
 (def my-tw-lists (get-new-tw-lists cfg))
