@@ -87,7 +87,7 @@
     (println "Updates to" (count tw-lists) "lists")
     (println (map (comp
                     (fn [[list-name num-links]]
-                      (format (str "List: " list-name " - Num of tweets " num-links "\n")))
+                      (format (str "List: " list-name " - Total num of tweets " num-links "\n")))
                     #((juxt :list-name (comp count :links)) %)) tw-lists))))
 
 (defn read-list-tweets
@@ -115,17 +115,9 @@
   If the given twitter list is empty then check twitter for our lists
   and create a new one."
   [tw-lists cfg]
-  (read-list-tweets (get-new-tw-lists cfg)))
-
-(defn age-old-tweets
-  "Age out tweets that are older than a configured number of days"
-  [tw-list days-to-keep]
-  (assoc-in tw-list [:links]
-            (vec (filter #(clj-time/within? (clj-time/interval
-                                     (-> days-to-keep clj-time/days clj-time/ago)
-                                     (clj-time/now))
-                            (coerce/from-date (:last-activity %)))
-                         (:links tw-list)))))
+  (if (nil? tw-lists)
+    (read-list-tweets (get-new-tw-lists cfg))
+    (read-list-tweets tw-lists)))
 
 (defn merge-cfg
   "Read our config file and merge it with the config supplied
@@ -210,6 +202,16 @@
   (let [twlist-filename (str (:directory (merge-cfg cfg)) "/" twlist-name)]
     (if (.exists (io/as-file twlist-filename))
       (read-string (slurp twlist-filename)))))
+
+(defn age-old-tweets
+  "Age out tweets that are older than a configured number of days"
+  [tw-list days-to-keep]
+  (assoc-in tw-list [:links]
+            (vec (filter #(clj-time/within? (clj-time/interval
+                                     (-> days-to-keep clj-time/days clj-time/ago)
+                                     (clj-time/now))
+                            (coerce/from-date (:last-activity %)))
+                         (:links tw-list)))))
 
 (defn read-old-tweets
   "We're given the tw list history dir (containing were we left off).
