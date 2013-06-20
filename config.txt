@@ -1,0 +1,13 @@
+{:help false,
+ :tw-lists-to-track #{},
+ :top-tweets 10,
+ :extension "-summ.txt",
+ :tw-sort  :default
+ :tw-score :default
+ :num-sentences 3
+ :algo {:type :luhn :params {:word-cluster-size 4}}
+ :score-algo {:type :freq :params {:freq-factor 0.5}}
+ :stop-words "models/english.txt",
+ :days-to-expire 3,
+ :directory "twlist",
+ :cfg-file "config.txt"}

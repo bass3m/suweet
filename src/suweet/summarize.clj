@@ -190,11 +190,6 @@
        (sort-by val)
        reverse))
 
-;(defn min-sentences
-  ;"Get the minimum number of sentences to return.
-  ;If squareroot of num of sentences is less than 3, then return 3.
-  ;Otherwise return the squaroot of num of sentences.")
-
 (defn calc-sentences
   "Calculate the significance factor (score) for all sentences in text."
   [text cfg]
@@ -214,7 +209,7 @@
 (defn format-summary
   "Make summary more viewable"
   [tweet-summary]
-  (map (comp  print :summary) tweet-summary))
+  (map (comp print :summary) tweet-summary))
 
 (defn summarize
   "Attempt to summarize a given text into it's most relevant sentences"
