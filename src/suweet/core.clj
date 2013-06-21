@@ -28,8 +28,11 @@
 (defn get-tweet-ids [tweets]
   (map :id tweets))
 
-(defn get-latest-tweet-id [tw-list tweets]
+(defn save-latest-tweet-id [tw-list tweets]
   (update-in tw-list [:since-id] #(apply max (flatten [% (map :id tweets)]))))
+
+(defn get-oldest-tweet-id [tweets]
+  (apply min (map :id tweets)))
 
 (defn process-tweet
   "Process an individual tweet. We only care about urls(contained in
@@ -60,20 +63,34 @@
                  :last-activity (java.util.Date.)
                  :text (hash-set text)})))
 
+(defn get-tweets
+  "Get new tweets for given twitter list"
+  [twitter-params]
+  (let [get-list-tweets (partial twitter.api.restful/lists-statuses
+                                 :oauth-creds cfg/my-creds)]
+    (loop [tweets (:body (get-list-tweets :params twitter-params))
+           all-tweets tweets]
+      (if (or (empty? tweets) (nil? (:since-id twitter-params)))
+        all-tweets
+        (recur (:body (get-list-tweets
+                              :params
+                              (-> twitter-params
+                                  (merge {:max-id 
+                                          (- (apply min (map :id tweets)) 1)}))))
+               (reduce conj all-tweets tweets))))))
+
 (defn process-list-tweets
   "Call twitter api for a list and process the tweets"
   [tw-list twitter-params]
-  (let [tweets (:body (twitter.api.restful/lists-statuses
-                        :oauth-creds cfg/my-creds
-                        :params twitter-params))
+  (let [tweets (get-tweets twitter-params)
         url-summaries (reduce #(process-tweet %1 %2)
-                              (get-latest-tweet-id tw-list tweets)
+                              (save-latest-tweet-id tw-list tweets)
                               tweets)]
     (do (spit (:list-name tw-list) (pr-str url-summaries))
         url-summaries)))
 
 (defn get-twitter-list-tweets
-  "Call twitter api for a list. Get 50 tweets/page"
+  "Call twitter api for a list. Get 50 tweets/call"
   [tw-list]
   (let [twitter-params {:list-id (:list-id tw-list) :count 50}
         since-id (:since-id tw-list)]
@@ -91,8 +108,9 @@
                     #((juxt :list-name (comp count :links)) %)) tw-lists))))
 
 (defn read-list-tweets
-  "Query twitter for tweets for each of our lists"
+  "Query twitter for tweets for each of our lists. Use pmap for increased performance"
   [tw-lists]
+  ;; XXX should compose those 2 calls, fix first then cleanup
   (let [tw-lists (map get-twitter-list-tweets tw-lists)]
     (print-tw-list-update-summary tw-lists)))
 
@@ -275,7 +293,7 @@
     (when help
       (println "Suweet" banner)
       (System/exit 0))
-    (cond 
+    (cond
       show-top-tweets (top-tweets-from opts show-top-tweets)
       show-link-summaries (summarize-from opts show-link-summaries)
       :else (-> opts
