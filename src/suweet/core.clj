@@ -73,9 +73,9 @@
         url-summaries)))
 
 (defn get-twitter-list-tweets
-  "Call twitter api for a list"
+  "Call twitter api for a list. Get 50 tweets/page"
   [tw-list]
-  (let [twitter-params {:list-id (:list-id tw-list)}
+  (let [twitter-params {:list-id (:list-id tw-list) :count 50}
         since-id (:since-id tw-list)]
     (cond
       (zero? since-id) (process-list-tweets tw-list twitter-params)
@@ -244,8 +244,12 @@
     (get-from (str twlist-name (:extension cfg)) s/format-summary cfg)))
 
 (defn -main [& args]
-  (let [[opts _ banner] 
+  (let [[opts _ banner]
         (cli/cli args
+                 ["--show-top-tweets"
+                  "Show highest scoring tweets from this twitter list"]
+                 ["--show-link-summaries"
+                  "Show link summary of tweets from this twitter list"]
                  ["--cfg-file" "Path to config file location"
                   :default "config.txt"]
                  ["--directory" "Directory where twitter lists reside"
@@ -267,12 +271,15 @@
                   "Space-separated string of twitter lists names. All if not specified"
                   :default #{} :parse-fn #(into #{} (clojure.string/split % #" "))]
                  ["--help" "Show help" :default false :flag true])
-        {:keys [help]} opts]
+        {:keys [show-top-tweets show-link-summaries help]} opts]
     (when help
       (println "Suweet" banner)
       (System/exit 0))
-    (-> opts
+    (cond 
+      show-top-tweets (top-tweets-from opts show-top-tweets)
+      show-link-summaries (summarize-from opts show-link-summaries)
+      :else (-> opts
         merge-cfg
         write-cfg
         read-old-tweets
-        (update-tw-links opts))))
+        (update-tw-links opts)))))
