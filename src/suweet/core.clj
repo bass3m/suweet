@@ -64,7 +64,13 @@
                  :text (hash-set text)})))
 
 (defn get-tweets
-  "Get new tweets for given twitter list"
+  "Get new tweets for the given twitter list.
+  If since-id was set then we get tweets using since-id
+  for the next twitter request we set the max-id to be the minimum
+  tweet id that was returned from twitter - 1, this will get more tweets
+  with a maximum id of the max-id. Twitter returns the most recent tweets
+  so we have to walk the list backwards while merging the tweets
+  into one big vector."
   [twitter-params]
   (let [get-list-tweets (partial twitter.api.restful/lists-statuses
                                  :oauth-creds cfg/my-creds)]
@@ -75,7 +81,7 @@
         (recur (:body (get-list-tweets
                               :params
                               (-> twitter-params
-                                  (merge {:max-id 
+                                  (merge {:max-id
                                           (- (apply min (map :id tweets)) 1)}))))
                (reduce conj all-tweets tweets))))))
 
@@ -99,20 +105,19 @@
       :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
 
 (defn print-tw-list-update-summary
+  [tw-list]
+  (println ((comp (fn [[list-name num-links]]
+                    (format (str "List: " list-name " - Total num of tweets " num-links "\n")))
+                  #((juxt :list-name (comp count :links)) %)) tw-list)))
+
+(defn read-list-tweets
+  "Query twitter for tweets for each of our lists.
+  Use pmap for increased performance"
   [tw-lists]
   (do
     (println "Updates to" (count tw-lists) "lists")
-    (println (map (comp
-                    (fn [[list-name num-links]]
-                      (format (str "List: " list-name " - Total num of tweets " num-links "\n")))
-                    #((juxt :list-name (comp count :links)) %)) tw-lists))))
-
-(defn read-list-tweets
-  "Query twitter for tweets for each of our lists. Use pmap for increased performance"
-  [tw-lists]
-  ;; XXX should compose those 2 calls, fix first then cleanup
-  (let [tw-lists (map get-twitter-list-tweets tw-lists)]
-    (print-tw-list-update-summary tw-lists)))
+    (->> tw-lists
+         (pmap (comp print-tw-list-update-summary get-twitter-list-tweets)))))
 
 (defn get-new-tw-lists
   "Call the get lists/list twitter api to get our lists.
