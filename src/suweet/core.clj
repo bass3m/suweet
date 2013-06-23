@@ -7,7 +7,7 @@
     [clj-time.coerce :as coerce]
     [suweet.score :as score :only [top-tw-list format-top-tweet]]
     [suweet.links :as link]
-    [suweet.summarize :as s :only [summarize]]
+    [suweet.summarize :as sum :only [summarize]]
     [suweet.cfg :as cfg :only [my-creds]]))
 
 (defn new-tw-list []
@@ -24,9 +24,6 @@
 
 (defn get-expanded-urls-from-tw [tweets]
   (map (comp :expanded_url first :urls :entities) tweets))
-
-(defn get-tweet-ids [tweets]
-  (map :id tweets))
 
 (defn save-latest-tweet-id [tw-list tweets]
   (update-in tw-list [:since-id] #(apply max (flatten [% (map :id tweets)]))))
@@ -107,7 +104,7 @@
 (defn print-tw-list-update-summary
   [tw-list]
   (println ((comp (fn [[list-name num-links]]
-                    (format (str "List: " list-name " - Total num of tweets " num-links "\n")))
+                    (format (str "List: " list-name " - Total num of tweets " num-links)))
                   #((juxt :list-name (comp count :links)) %)) tw-list)))
 
 (defn read-list-tweets
@@ -202,7 +199,7 @@
     (assoc tweet :summary (vec (map :sentence (-> url
                                                   link/parse-url
                                                   link/clean-html
-                                                  s/summarize))))
+                                                  (sum/summarize cfg)))))
     tweet))
 
 (defn summarize-tw-list
@@ -210,14 +207,18 @@
   [cfg tw-list]
   (assoc-in tw-list [:links] (vec (map (partial summarize-link cfg) (:links tw-list)))))
 
-(defn summarize-top-tweets
+(defn save-top-tweets-summaries
+  [cfg tw-list]
+  ((comp (partial save-top-tw-list cfg)
+         (partial summarize-tw-list cfg)
+         (partial score/top-tw-list cfg)) tw-list))
+
+(defn summarize-all-top-tweets
   [cfg]
   (let [cfg (merge-cfg cfg)]
-    (map (comp (partial save-top-tw-list cfg)
-               (partial summarize-tw-list cfg)
-               (partial score/top-tw-list cfg)) (-> cfg
-                                                    write-cfg
-                                                    read-tw-lists))))
+    (map save-top-tweets-summaries (-> cfg
+                                       write-cfg
+                                       read-tw-lists))))
 
 (defn read-tw-list-by-name
   "Read the given twlist"
@@ -250,13 +251,20 @@
 
 (defn get-from
   "Get from given twlist name"
-  [twlist-name f cfg]
+  [cfg twlist-name f]
   (f (read-tw-list-by-name cfg twlist-name)))
 
 (defn top-tweets-from
   "Return the top tweets from given twitter list in a user viewable format"
   [cfg twlist-name]
-  (get-from twlist-name score/format-top-tweets cfg))
+  (get-from cfg twlist-name score/format-top-tweets))
+
+(defn summarize-top-tweets
+  "Given a tw list, score and summarize links"
+  [cfg twlist-name]
+  (->> twlist-name
+       (read-tw-list-by-name cfg)
+       (save-top-tweets-summaries cfg)))
 
 (defn summarize-from
   "Return summaries of text from a given twitter list. We're given the
@@ -264,7 +272,8 @@
   in order to read the summary file"
   [cfg twlist-name]
   (let [cfg (merge-cfg cfg)]
-    (get-from (str twlist-name (:extension cfg)) s/format-summary cfg)))
+    (summarize-top-tweets cfg twlist-name)
+    (get-from cfg (str twlist-name (:extension cfg)) sum/format-summary)))
 
 (defn -main [& args]
   (let [[opts _ banner]

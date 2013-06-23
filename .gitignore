@@ -11,3 +11,6 @@ pom.xml.asc
 .lein-plugins
 .lein-repl-history
 *.swp
+
+/src/suweet/cfg.clj
+/config.txt

@@ -15,7 +15,7 @@
           parser (HtmlParser.)
           context (ParseContext.)]
       (.parse parser i-stream text metadata context)
-      (assoc {} :url url :text (.toString text)))))
+      (.toString text))))
 
 (defn clean-html
   "Remove html markup from a string and perform a little cleanup.
@@ -27,6 +27,6 @@
       (s/replace #"(?s)<!--(.*?)-->[\n]?" "")
       (s/replace #"(?s)<.*?>" " ")
       (s/replace #"&nbsp;" " ")
-      (s/replace #"[\n]+|\s{2,}" " ")
-      (s/replace #"\t" " . ")
+      (s/replace  #"\A[\s]+|[\s]+\Z|^[\s]$+" "")
+      (s/replace #"[\s]{3,}" " ")
       s/trim))
