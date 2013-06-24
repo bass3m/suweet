@@ -72,15 +72,16 @@
   (let [get-list-tweets (partial twitter.api.restful/lists-statuses
                                  :oauth-creds cfg/my-creds)]
     (loop [tweets (:body (get-list-tweets :params twitter-params))
-           all-tweets tweets]
-      (if (or (empty? tweets) (nil? (:since-id twitter-params)))
-        all-tweets
-        (recur (:body (get-list-tweets
+           all-tweets []]
+      (cond
+        (empty? tweets) all-tweets
+        (nil? (:since-id twitter-params)) tweets
+        :else (recur (:body (get-list-tweets
                               :params
                               (-> twitter-params
                                   (merge {:max-id
                                           (- (apply min (map :id tweets)) 1)}))))
-               (reduce conj all-tweets tweets))))))
+                     (reduce conj all-tweets tweets))))))
 
 (defn process-list-tweets
   "Call twitter api for a list and process the tweets"
