@@ -106,7 +106,7 @@
   [tw-list]
   (println ((comp (fn [[list-name num-links]]
                     (format (str "List: " list-name " - Total num of tweets " num-links)))
-                  #((juxt :list-name (comp count :links)) %)) tw-list)))
+                  (partial (juxt :list-name (comp count :links)))) tw-list)))
 
 (defn read-list-tweets
   "Query twitter for tweets for each of our lists.
@@ -312,7 +312,7 @@
       show-top-tweets (top-tweets-from opts show-top-tweets)
       show-link-summaries (summarize-from opts show-link-summaries)
       :else (-> opts
-        merge-cfg
-        write-cfg
-        read-old-tweets
-        (update-tw-links opts)))))
+                merge-cfg
+                write-cfg
+                read-old-tweets
+                (update-tw-links opts)))))
