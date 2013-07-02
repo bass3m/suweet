@@ -1,15 +1,6 @@
 (ns suweet.score
   (:require [clojure.string :as s :only [join]]))
 
-(defn format-tweet
-  "Format a top tweet in a more user friendly view"
-  [tw]
-  (format "\nBy: %s\n%s\n%sReTweeted by: %d Favorited by: %d Followers: %d\n"
-          (s/join ":" (concat (:urlers tw)))
-          (s/join ":" (concat (:text tw)))
-          (if (not (nil? (:url tw))) (s/join ["Link: " (:url tw) "\n"]) "")
-          (:rt-counts tw) (:fav-counts tw) (:follow-count tw)))
-
 (defmulti score-tweet
   "Scoring function for a tweet. The idea is to be able to vary the
   method used to calculate the score of a tweet"
@@ -42,6 +33,15 @@
                            (vec (take (:top-tweets cfg)
                                  (reverse (sort-by (partial sort-tweet cfg)
                                                    (:links tw-list))))))))
+(defn format-tweet
+  "Format a top tweet in a more user friendly view"
+  [tw]
+  (format "\nBy: %s\n%s\n%sReTweeted by: %d Favorited by: %d Followers: %d\n"
+          (s/join ":" (concat (:urlers tw)))
+          (s/join ":" (concat (:text tw)))
+          (if (not (nil? (:url tw))) (s/join ["Link: " (:url tw) "\n"]) "")
+          (:rt-counts tw) (:fav-counts tw) (:follow-count tw)))
+
 (defn format-top-tweets
   "Format top twitter list tweets to be ready to print"
   ([tw-list] (format-top-tweets {:top-tweets 10

@@ -33,7 +33,7 @@
                                              (inc acc) acc))
                                0 (take word-cluster-size sentence)))))))
 
-(defn filter-sentence
+(defn- filter-sentence
   "Given a sentence return tokenized sentence together with the
   indeces of word position in the sentence with the non-significant
   word filtered out."
@@ -76,22 +76,22 @@
       (println "Config: " cfg "what:" (get-in cfg [:algo :type]))))
 
 
-(defn filter-string-non-words
+(defn- filter-string-non-words
   "Given a string, filter the non Char or Digits."
   [st]
   (s/join (filter #(Character/isLetterOrDigit %) st)))
 
-(defn filter-non-words
+(defn- filter-non-words
   "Given a coll of strings, get rid of non-words, periods, commas for example."
   [str-coll]
   (filter (fn [s] (every? #(Character/isLetterOrDigit %) s)) str-coll))
 
-(defn stem-words
+(defn- stem-words
   "Given a coll of words, get the stems."
   [words]
   (map en-stemmer words))
 
-(defn filter-stop-words
+(defn- filter-stop-words
   "Get rid of stop words from a given coll of words"
   [cfg words]
   (let [stop-words (into #{} (s/split-lines
@@ -124,13 +124,13 @@
 ;; From Knuth TAOCP vol 2, 3rd edition, page 232
 (defn mean-variance
   [coll]
-  (reduce (fn [{:keys [n mean m2] :as acc} new-n] 
+  (reduce (fn [{:keys [n mean m2] :as acc} new-n]
             (let [new-mean (+ mean  (/ (- new-n mean) (inc n)))
                   new-m2 (+ m2 (* (- new-n mean) (- new-n new-mean)))]
               (-> acc
                   (assoc :n (inc n))
                   (assoc :mean new-mean)
-                  (assoc :m2 new-m2)))) 
+                  (assoc :m2 new-m2))))
           {:n 0 :mean 0 :m2 0} coll))
 
 (defn online-mean
@@ -152,8 +152,8 @@
 (defmethod filter-low-score-sentences :freq
   [cfg sents]
   (let [coll-scores (map :score sents)
-        score-threshold (+ (mean coll-scores) 
-                           (* (std coll-scores) 
+        score-threshold (+ (mean coll-scores)
+                           (* (std coll-scores)
                               ((comp :freq-factor :params :score-algo) cfg)))]
     (filter #(> (:score %) score-threshold) sents)))
 
@@ -174,7 +174,7 @@
   [cfg sents]
   (println "Not implemented. Config: " cfg))
 
-(defn significant-words
+(defn- significant-words
   "Given text return all the significant words. Which are the
   original text without all the stop words and after it's been
   run through the stemmer. Returns lazyseq of vectors containing
@@ -190,7 +190,7 @@
        (sort-by val)
        reverse))
 
-(defn calc-sentences
+(defn- calc-sentences
   "Calculate the significance factor (score) for all sentences in text."
   [text cfg]
   (let [sentences (get-sentences text)
