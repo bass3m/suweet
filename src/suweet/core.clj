@@ -4,6 +4,7 @@
     [clojure.tools.cli :as cli :only [cli]]
     [clj-time.core :as clj-time]
     [clj-time.coerce :as coerce]
+    [suweet.cfg :as cfg :only [my-creds]]
     [suweet.twitter :as twitter]
     [suweet.score :as score :only [top-tw-list format-top-tweet]]
     [suweet.links :as link]
@@ -36,7 +37,7 @@
     (->> tw-lists
          (pmap (comp print-tw-list-update-summary
                      save-tweets-to-file
-                     twitter/get-twitter-list-tweets)))))
+                     (partial twitter/get-twitter-list-tweets cfg/my-creds))))))
 
 (defn- get-new-tw-lists
   "Call the get lists/list twitter api to get our lists.
@@ -44,7 +45,7 @@
   to monitor all our lists. If not, then monitor only the list
   listed in that set."
   [cfg]
-  (for [{:keys [slug id]} (twitter/get-twitter-lists)
+  (for [{:keys [slug id]} (twitter/get-twitter-lists cfg/my-creds)
         :let [tw-list (:tw-lists-to-track cfg)]
         :when (or (empty? tw-list)
                   (contains? tw-list slug))]

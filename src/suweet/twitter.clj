@@ -1,12 +1,19 @@
 (ns suweet.twitter
   (:require
-    [twitter.api.restful :as twitter]
-    [suweet.cfg :as cfg :only [my-creds]]))
+    [twitter.oauth]
+    [twitter.api.restful :as twitter]))
+
+(defn make-twitter-creds
+  "Create the twitter credentials. Get tokens/keys from https://dev.twitter.com"
+  [app-consumer-key app-consumer-secret
+   access-token-key access-token-secret]
+  (twitter.oauth/make-oauth-creds app-consumer-key app-consumer-secret
+                                  access-token-key access-token-secret))
 
 (defn get-twitter-lists
   "Query twitter for our lists. Returns vector of maps."
-  []
-  (:body (twitter/lists-list :oauth-creds cfg/my-creds)))
+  [my-creds]
+  (:body (twitter/lists-list :oauth-creds my-creds)))
 
 (defn- get-expanded-urls-from-tw [tweets]
   (map (comp :expanded_url first :urls :entities) tweets))
@@ -57,9 +64,9 @@
   with a maximum id of the max-id. Twitter returns the most recent tweets
   so we have to walk the list backwards while merging the tweets
   into one big vector."
-  [twitter-params]
+  [my-creds twitter-params]
   (let [get-list-tweets (partial twitter/lists-statuses
-                                 :oauth-creds cfg/my-creds)]
+                                 :oauth-creds my-creds)]
     (loop [tweets (:body (get-list-tweets :params twitter-params))
            all-tweets []]
       (cond
@@ -74,17 +81,20 @@
 
 (defn- process-list-tweets
   "Call twitter api for a list and process the tweets"
-  [tw-list twitter-params]
-  (let [tweets (get-tweets twitter-params)]
+  [my-creds tw-list twitter-params]
+  (let [tweets (get-tweets my-creds twitter-params)]
     (reduce #(process-tweet %1 %2)
             (save-latest-tweet-id tw-list tweets)
             tweets)))
 
 (defn get-twitter-list-tweets
   "Call twitter api for a list. Get 50 tweets/call"
-  [tw-list]
+  [my-creds tw-list]
   (let [twitter-params {:list-id (:list-id tw-list) :count 50}
         since-id (:since-id tw-list)]
     (cond
-      (zero? since-id) (process-list-tweets tw-list twitter-params)
-      :else (process-list-tweets tw-list (merge twitter-params {:since-id since-id})))))
+      (zero? since-id) (process-list-tweets my-creds tw-list twitter-params)
+      :else (process-list-tweets
+              my-creds
+              tw-list
+              (merge twitter-params {:since-id since-id})))))
