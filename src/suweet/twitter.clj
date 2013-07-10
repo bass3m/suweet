@@ -24,37 +24,22 @@
 (defn- get-oldest-tweet-id [tweets]
   (apply min (map :id tweets)))
 
-(defn- process-tweet
+(defn process-tweet
   "Process an individual tweet. We only care about urls(contained in
   entities),text, fav count and rt count."
-  ; if it's a new link then create a new link
-  ; otherwise update the existing entry: by increasing count and adding
-  ; another urlers to the set, also text and update the last activity
   [{:keys [links] :as tw-list}
    {:keys [text favorite_count retweet_count entities user id]}]
-   (if-let [link (seq (for [my-link (seq links)
-                            tw-url (map :expanded_url (:urls entities))
-                            :when (and (not (nil? (:url my-link)))
-                                       (= (:url my-link) tw-url))] my-link))]
-     (assoc-in tw-list [:links (.indexOf links (first link))]
-               (-> (first link)
-                   (update-in [:count] inc)
-                   (update-in [:text] conj text)
-                   (update-in [:urlers] conj (:name user))
-                   (update-in [:follow-count] max (:followers_count user))
-                   (update-in [:rt-counts] max retweet_count)
-                   (update-in [:fav-counts] max favorite_count)))
-     (update-in tw-list [:links] conj
-                {:url (:expanded_url (first (:urls entities)))
-                 :count 1
-                 :rt-counts retweet_count
-                 :fav-counts favorite_count
-                 :urlers (hash-set (:name user))
-                 :follow-count (:followers_count user)
-                 :last-activity (java.util.Date.)
-                 :text (hash-set text)
-                 :id id
-                 :profile-image-url (:profile_image_url user)})))
+  (update-in tw-list [:links] conj
+             {:url (:expanded_url (first (:urls entities)))
+              :count 1
+              :rt-counts retweet_count
+              :fav-counts favorite_count
+              :urlers (hash-set (:name user))
+              :follow-count (:followers_count user)
+              :last-activity (java.util.Date.)
+              :text (hash-set text)
+              :id id
+              :profile-image-url (:profile_image_url user)}))
 
 (defn get-tweets
   "Get new tweets for the given twitter list.
@@ -79,7 +64,7 @@
                                           (- (apply min (map :id tweets)) 1)}))))
                      (reduce conj all-tweets tweets))))))
 
-(defn- process-list-tweets
+(defn process-list-tweets
   "Call twitter api for a list and process the tweets"
   [my-creds tw-list twitter-params]
   (let [tweets (get-tweets my-creds twitter-params)]
