@@ -28,7 +28,7 @@
   "Process an individual tweet. We only care about urls(contained in
   entities),text, fav count and rt count."
   [{:keys [links] :as tw-list}
-   {:keys [text favorite_count retweet_count entities user id]}]
+   {:keys [text favorite_count retweet_count entities user id created_at]}]
   (update-in tw-list [:links] conj
              {:url (:expanded_url (first (:urls entities)))
               :count 1
@@ -39,6 +39,7 @@
               :last-activity (java.util.Date.)
               :text (hash-set text)
               :id id
+              :created-at created_at
               :profile-image-url (:profile_image_url user)}))
 
 (defn get-tweets

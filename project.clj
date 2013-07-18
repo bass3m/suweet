@@ -1,4 +1,4 @@
-(defproject suweet "0.1.2-SNAPSHOT"
+(defproject suweet "0.1.4-SNAPSHOT"
   :description "Utility for summarizing Twitter lists"
   :url "https://github.com/bass3m/suweet.git"
   :license {:name "Eclipse Public License"
