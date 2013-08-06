@@ -121,7 +121,6 @@
   (if-let [url (:url tweet)]
     (assoc tweet :summary (vec (map :sentence (-> url
                                                   link/parse-url
-                                                  link/clean-html
                                                   (sum/summarize cfg)))))
     tweet))
 

@@ -213,7 +213,7 @@
 
 (defn summarize
   "Attempt to summarize a given text into it's most relevant sentences"
-  ([text] (summarize text {:num-sentences 3
+  ([text] (summarize text {:num-sentences 7
                            :algo {:type :luhn :params {:word-cluster-size 4}}
                            :score-algo {:type :freq :params {:freq-factor 0.5}}
                            :stop-words "models/english.txt"}))
