@@ -28,9 +28,11 @@
   "Process an individual tweet. We only care about urls(contained in
   entities),text, fav count and rt count."
   [{:keys [links] :as tw-list}
-   {:keys [text favorite_count retweet_count entities user id created_at]}]
+   {:keys [text favorite_count retweet_count entities
+           user id created_at retweeted_status]}]
   (update-in tw-list [:links] conj
-             {:url (:expanded_url (first (:urls entities)))
+             {:url (or (-> entities :urls first :expanded_url)
+                       (-> retweeted_status :entities :urls first :expanded_url))
               :count 1
               :rt-counts retweet_count
               :fav-counts favorite_count
